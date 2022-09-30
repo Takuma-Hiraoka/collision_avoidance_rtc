@@ -20,6 +20,8 @@ endforeach(lib)
 
 rtmbuild_add_library(CollisionAvoidance SHARED
   CollisionAvoidance.cpp
+  AvoidancePlanner.cpp
+  MathUtil.cpp
   )
 target_link_libraries(CollisionAvoidance
   ${catkin_LIBRARIES}

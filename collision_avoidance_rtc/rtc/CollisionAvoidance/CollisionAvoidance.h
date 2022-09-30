@@ -9,6 +9,7 @@
 #include <cnoid/EigenTypes>
 #include "auto_stabilizer_msgs/idl/AutoStabilizer.hh"
 #include "GaitParam.h"
+#include "AvoidancePlanner.h"
 
 class CollisionAvoidance : public RTC::DataFlowComponentBase{
 protected:
@@ -24,6 +25,7 @@ public:
   virtual RTC::ReturnCode_t onExecute(RTC::UniqueId ec_id);
 
   GaitParam gaitParam_;
+  AvoidancePlanner avoidancePlanner_;
 };
 
 extern "C"

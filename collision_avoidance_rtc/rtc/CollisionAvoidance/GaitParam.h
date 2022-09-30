@@ -17,7 +17,9 @@ public:
     double remainTime = 0.0;
   };
   std::vector<FootStepNodes> footstepNodesList = std::vector<FootStepNodes>(1);
-  
+
+  std::vector<std::vector<cnoid::Vector2> > steppable_region; // 要素数任意. supportLeg相対. endCoordsが存在できる領域
+  std::vector<double> steppable_height; // 要素数はsteppable_regionと同じ. supportLeg相対. 各polygonごとのおおよその値. 
 };
 
 inline std::ostream &operator<<(std::ostream &os, const std::vector<GaitParam::FootStepNodes>& footstepNodesList) {
