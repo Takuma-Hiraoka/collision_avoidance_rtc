@@ -14,3 +14,4 @@ rtmbuild_init()
 catkin_package(
 )
 
+add_subdirectory(rtc)
