@@ -2,6 +2,7 @@ add_definitions(-Wno-deprecated)
 
 find_package(catkin REQUIRED COMPONENTS
   rtmbuild
+  auto_stabilizer_msgs
   )
 find_package(choreonoid REQUIRED)
 
