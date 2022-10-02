@@ -19,7 +19,14 @@ public:
   std::vector<FootStepNodes> footstepNodesList;
 
   std::vector<std::vector<cnoid::Vector2> > steppable_region; // 要素数任意. supportLeg相対. endCoordsが存在できる領域
-  std::vector<double> steppable_height; // 要素数はsteppable_regionと同じ. supportLeg相対. 各polygonごとのおおよその値. 
+  std::vector<double> steppable_height; // 要素数はsteppable_regionと同じ. supportLeg相対. 各polygonごとのおおよその値.
+
+  cnoid::Vector3 curZmp;
+  cnoid::Vector3 genCog;
+  cnoid::Vector3 genCogVel;
+  double omega;
+  cnoid::Vector3 l;
+  double dt;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const std::vector<GaitParam::FootStepNodes>& footstepNodesList) {

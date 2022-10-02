@@ -4,6 +4,7 @@ CollisionAvoidance::CollisionAvoidance(RTC::Manager* manager):
   RTC::DataFlowComponentBase(manager),
   m_steppableRegionIn_("steppableRegionIn", m_steppableRegion_),
   m_refFootStepNodesListIn_("refFootStepNodesListIn", m_refFootStepNodesList_),
+  m_comPredictParamIn_("comPredictParamIn", m_comPredictParam_),
   m_footStepNodesListOut_("footStepNodesListOut", m_footStepNodesList_)
 {
 }
@@ -11,6 +12,7 @@ CollisionAvoidance::CollisionAvoidance(RTC::Manager* manager):
 RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
   addInPort("steppableRegionIn", m_steppableRegionIn_);
   addInPort("refFootStepNodesListIn", m_refFootStepNodesListIn_);
+  addInPort("comPredictParamIn", m_comPredictParamIn_);
   addOutPort("footStepNodesListOut", m_footStepNodesListOut_);
   return RTC::RTC_OK;
 }
@@ -52,6 +54,24 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       }
       gaitParam_.footstepNodesList[i].remainTime = m_refFootStepNodesList_.data[i].remainTime;
     }
+  }
+
+  if(this->m_comPredictParamIn_.isNew()){
+    m_comPredictParamIn_.read();
+    gaitParam_.curZmp[0] = m_comPredictParam_.curZmp.x;
+    gaitParam_.curZmp[1] = m_comPredictParam_.curZmp.y;
+    gaitParam_.curZmp[2] = m_comPredictParam_.curZmp.z;
+    gaitParam_.genCog[0] = m_comPredictParam_.curCog.x;
+    gaitParam_.genCog[1] = m_comPredictParam_.curCog.y;
+    gaitParam_.genCog[2] = m_comPredictParam_.curCog.z;
+    gaitParam_.genCogVel[0] = m_comPredictParam_.curCogVel.x;
+    gaitParam_.genCogVel[1] = m_comPredictParam_.curCogVel.y;
+    gaitParam_.genCogVel[2] = m_comPredictParam_.curCogVel.z;
+    gaitParam_.omega = m_comPredictParam_.omega;
+    gaitParam_.l[0] = m_comPredictParam_.l.x;
+    gaitParam_.l[1] = m_comPredictParam_.l.y;
+    gaitParam_.l[2] = m_comPredictParam_.l.z;
+    gaitParam_.dt = m_comPredictParam_.dt;
   }
 
   // 着地可能な領域を計算

@@ -19,6 +19,8 @@ protected:
   RTC::InPort <auto_stabilizer_msgs::TimedSteppableRegion> m_steppableRegionIn_;
   auto_stabilizer_msgs::TimedFootStepNodesList m_refFootStepNodesList_;
   RTC::InPort <auto_stabilizer_msgs::TimedFootStepNodesList> m_refFootStepNodesListIn_;
+  auto_stabilizer_msgs::ComPredictParam m_comPredictParam_;
+  RTC::InPort<auto_stabilizer_msgs::ComPredictParam> m_comPredictParamIn_;
 
   auto_stabilizer_msgs::TimedFootStepNodesList m_footStepNodesList_;
   RTC::OutPort <auto_stabilizer_msgs::TimedFootStepNodesList> m_footStepNodesListOut_;
