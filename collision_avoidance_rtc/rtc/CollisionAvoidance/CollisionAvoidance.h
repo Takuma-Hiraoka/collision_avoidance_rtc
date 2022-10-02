@@ -7,6 +7,7 @@
 #include <rtm/DataInPort.h>
 
 #include <cnoid/EigenTypes>
+#include <cnoid/TimeMeasure>
 #include "auto_stabilizer_msgs/idl/AutoStabilizer.hh"
 #include "GaitParam.h"
 #include "AvoidancePlanner.h"
@@ -16,8 +17,11 @@ protected:
 
   auto_stabilizer_msgs::TimedSteppableRegion m_steppableRegion_;
   RTC::InPort <auto_stabilizer_msgs::TimedSteppableRegion> m_steppableRegionIn_;
+  auto_stabilizer_msgs::TimedFootStepNodesList m_refFootStepNodesList_;
+  RTC::InPort <auto_stabilizer_msgs::TimedFootStepNodesList> m_refFootStepNodesListIn_;
+
   auto_stabilizer_msgs::TimedFootStepNodesList m_footStepNodesList_;
-  RTC::InPort <auto_stabilizer_msgs::TimedFootStepNodesList> m_footStepNodesListIn_;
+  RTC::OutPort <auto_stabilizer_msgs::TimedFootStepNodesList> m_footStepNodesListOut_;
 
 public:
   CollisionAvoidance(RTC::Manager* manager);

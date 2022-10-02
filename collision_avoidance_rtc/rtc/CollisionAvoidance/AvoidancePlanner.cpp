@@ -1,7 +1,8 @@
 #include "AvoidancePlanner.h"
 
-void AvoidancePlanner::calcSafeHulls(const std::vector<GaitParam::FootStepNodes>& footStepNodesList, const std::vector<std::vector<cnoid::Vector2> > steppable_region, const std::vector<double> steppable_height, std::vector<std::vector<cnoid::Vector3> > o_steppableHulls, std::vector<double> o_steppableHeights, std::vector<std::vector<cnoid::Vector3>> o_safeHulls) const{
+void AvoidancePlanner::calcSafeHulls(const std::vector<GaitParam::FootStepNodes> footStepNodesList, const std::vector<std::vector<cnoid::Vector2> > steppable_region, const std::vector<double> steppable_height, std::vector<std::vector<cnoid::Vector3>>& o_steppableHulls, std::vector<double>& o_steppableHeights, std::vector<std::vector<cnoid::Vector3>>& o_safeHulls) const{
   // 現在片足支持期で、次が両足支持期であるときのみ、行う
+  // 現在両足支持機で、次が片足支持期のときのみにしたほうが、急激なfootstepの変化や時間的余裕があってよい？
   if(!(footStepNodesList.size() > 1 &&
        (footStepNodesList[1].isSupportPhase[RLEG] && footStepNodesList[1].isSupportPhase[LLEG]) &&
        ((footStepNodesList[0].isSupportPhase[RLEG] && !footStepNodesList[0].isSupportPhase[LLEG]) || (!footStepNodesList[0].isSupportPhase[RLEG] && footStepNodesList[0].isSupportPhase[LLEG]))))
@@ -51,7 +52,7 @@ void AvoidancePlanner::calcSafeHulls(const std::vector<GaitParam::FootStepNodes>
 
   o_steppableHulls = steppableHulls;
   o_steppableHeights = steppableHeights;
-  o_safeHulls = candidates;  
+  o_safeHulls = candidates;
 };
 
 void AvoidancePlanner::updateSafeFootStep(std::vector<GaitParam::FootStepNodes>& footStepNodesList, const std::vector<std::vector<cnoid::Vector3> > steppableHulls, const std::vector<double> steppableHeights, const std::vector<std::vector<cnoid::Vector3>> safeHulls) const {
@@ -67,7 +68,9 @@ void AvoidancePlanner::updateSafeFootStep(std::vector<GaitParam::FootStepNodes>&
   int supportLeg = (swingLeg == RLEG) ? LLEG : RLEG;
 
   for(int i=0;i<safeHulls.size();i++){
-    if(mathutil::isInsideHull(footStepNodesList[0].dstCoords[swingLeg].translation(), safeHulls[i])) return;
+    if(mathutil::isInsideHull(footStepNodesList[0].dstCoords[swingLeg].translation(), safeHulls[i])){
+      return;
+    }
   }
 
   // 最近傍点に修正する。一歩で乗り越えてしまうような薄い壁は無視してしまう．

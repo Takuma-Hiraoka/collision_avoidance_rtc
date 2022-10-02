@@ -3,18 +3,23 @@
 CollisionAvoidance::CollisionAvoidance(RTC::Manager* manager):
   RTC::DataFlowComponentBase(manager),
   m_steppableRegionIn_("steppableRegionIn", m_steppableRegion_),
-  m_footStepNodesListIn_("footStepNodesListIn", m_footStepNodesList_)
+  m_refFootStepNodesListIn_("refFootStepNodesListIn", m_refFootStepNodesList_),
+  m_footStepNodesListOut_("footStepNodesListOut", m_footStepNodesList_)
 {
 }
 
 RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
   addInPort("steppableRegionIn", m_steppableRegionIn_);
-  addInPort("footStepNodesListIn", m_footStepNodesListIn_);
+  addInPort("refFootStepNodesListIn", m_refFootStepNodesListIn_);
+  addOutPort("footStepNodesListOut", m_footStepNodesListOut_);
   return RTC::RTC_OK;
 }
 
 RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
   std::cerr << "Collision Avoidance rtc onExecute" << std::endl;
+  cnoid::TimeMeasure timer;
+  timer.begin();
+  // TODO 本来はserviceにするべき？
   if(this->m_steppableRegionIn_.isNew()){
     m_steppableRegionIn_.read();
     if ((gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && (m_steppableRegion_.data.l_r == 0)) ||
@@ -34,24 +39,49 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
     }
   }
   
-  if(this->m_footStepNodesListIn_.isNew()){
-    m_footStepNodesListIn_.read();
-    gaitParam_.footstepNodesList.resize(m_footStepNodesList_.data.length());
+  if(this->m_refFootStepNodesListIn_.isNew()){
+    m_refFootStepNodesListIn_.read();
+    gaitParam_.footstepNodesList.resize(m_refFootStepNodesList_.data.length());
     for(int i=0;i<gaitParam_.footstepNodesList.size();i++) {
       for(int j=0;j<NUM_LEGS;j++){
-	gaitParam_.footstepNodesList[i].dstCoords[j].translation()[0] = m_footStepNodesList_.data[i].dstCoords[j].position.x;
-	gaitParam_.footstepNodesList[i].dstCoords[j].translation()[1] = m_footStepNodesList_.data[i].dstCoords[j].position.y;
-	gaitParam_.footstepNodesList[i].dstCoords[j].translation()[2] = m_footStepNodesList_.data[i].dstCoords[j].position.z;
-	gaitParam_.footstepNodesList[i].dstCoords[j].linear() = cnoid::rotFromRpy(m_footStepNodesList_.data[i].dstCoords[j].orientation.r, m_footStepNodesList_.data[i].dstCoords[j].orientation.p, m_footStepNodesList_.data[i].dstCoords[j].orientation.y);
-	gaitParam_.footstepNodesList[i].isSupportPhase[j] = m_footStepNodesList_.data[i].isSupportPhase[j];
+	gaitParam_.footstepNodesList[i].dstCoords[j].translation()[0] = m_refFootStepNodesList_.data[i].dstCoords[j].position.x;
+	gaitParam_.footstepNodesList[i].dstCoords[j].translation()[1] = m_refFootStepNodesList_.data[i].dstCoords[j].position.y;
+	gaitParam_.footstepNodesList[i].dstCoords[j].translation()[2] = m_refFootStepNodesList_.data[i].dstCoords[j].position.z;
+	gaitParam_.footstepNodesList[i].dstCoords[j].linear() = cnoid::rotFromRpy(m_refFootStepNodesList_.data[i].dstCoords[j].orientation.r, m_refFootStepNodesList_.data[i].dstCoords[j].orientation.p, m_refFootStepNodesList_.data[i].dstCoords[j].orientation.y);
+	gaitParam_.footstepNodesList[i].isSupportPhase[j] = m_refFootStepNodesList_.data[i].isSupportPhase[j];
       }
-      gaitParam_.footstepNodesList[i].remainTime = m_footStepNodesList_.data[i].remainTime;
+      gaitParam_.footstepNodesList[i].remainTime = m_refFootStepNodesList_.data[i].remainTime;
     }
   }
 
+  // 着地可能な領域を計算
   avoidancePlanner_.calcSafeHulls(gaitParam_.footstepNodesList, gaitParam_.steppable_region, gaitParam_.steppable_height, avoidancePlanner_.steppableHulls, avoidancePlanner_.steppableHeights, avoidancePlanner_.safeHulls);
 
+  // footstepを着地可能な領域になおす
   avoidancePlanner_.updateSafeFootStep(gaitParam_.footstepNodesList, avoidancePlanner_.steppableHulls, avoidancePlanner_.steppableHeights, avoidancePlanner_.safeHulls);
+
+  this->m_footStepNodesList_.data.length(gaitParam_.footstepNodesList.size());
+  for(int i=0;i<this->m_footStepNodesList_.data.length();i++) {
+    this->m_footStepNodesList_.data[i].dstCoords.length(NUM_LEGS);
+    this->m_footStepNodesList_.data[i].isSupportPhase.length(NUM_LEGS);
+    for(int j=0;j<NUM_LEGS;j++){
+      this->m_footStepNodesList_.data[i].dstCoords[j].position.x = gaitParam_.footstepNodesList[i].dstCoords[j].translation()[0];
+      this->m_footStepNodesList_.data[i].dstCoords[j].position.y = gaitParam_.footstepNodesList[i].dstCoords[j].translation()[1];
+      this->m_footStepNodesList_.data[i].dstCoords[j].position.z = gaitParam_.footstepNodesList[i].dstCoords[j].translation()[2];
+      cnoid::Vector3 rpy = cnoid::rpyFromRot(gaitParam_.footstepNodesList[i].dstCoords[j].linear());
+      this->m_footStepNodesList_.data[i].dstCoords[j].orientation.r = rpy[0];
+      this->m_footStepNodesList_.data[i].dstCoords[j].orientation.p = rpy[1];
+      this->m_footStepNodesList_.data[i].dstCoords[j].orientation.y = rpy[2];
+      this->m_footStepNodesList_.data[i].isSupportPhase[j] = gaitParam_.footstepNodesList[i].isSupportPhase[j];
+      }
+  }
+
+  if(gaitParam_.footstepNodesList.size() > 1 &&
+       (gaitParam_.footstepNodesList[1].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[1].isSupportPhase[LLEG]) &&
+       ((gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && !gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]) || (!gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]))){
+    this->m_footStepNodesList_.data[0].remainTime = gaitParam_.footstepNodesList[0].remainTime - timer.measure(); // 計算時間を引く．TODO footstepがこのRTCに届くまでの時間．そもそもremainTimeは必要か？
+    this->m_footStepNodesListOut_.write();
+  }
   return RTC::RTC_OK;
 }
 

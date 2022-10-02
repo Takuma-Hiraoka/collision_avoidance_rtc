@@ -16,7 +16,7 @@ public:
     std::vector<bool> isSupportPhase = std::vector<bool>(NUM_LEGS, true); // 要素数2. rleg: 0. lleg: 1. footstepNodesListの末尾の要素が両方falseであることは無い
     double remainTime = 0.0;
   };
-  std::vector<FootStepNodes> footstepNodesList = std::vector<FootStepNodes>(1);
+  std::vector<FootStepNodes> footstepNodesList;
 
   std::vector<std::vector<cnoid::Vector2> > steppable_region; // 要素数任意. supportLeg相対. endCoordsが存在できる領域
   std::vector<double> steppable_height; // 要素数はsteppable_regionと同じ. supportLeg相対. 各polygonごとのおおよその値. 

@@ -3,6 +3,7 @@
 
 #include "GaitParam.h"
 #include "MathUtil.h"
+#include <iostream>
 
 class AvoidancePlanner{
 public:
@@ -12,7 +13,7 @@ public:
   std::vector<double> steppableHeights; // 要素数はsteppable_regionと同じ. generate frame. 各polygonごとのおおよその値.
   std::vector<std::vector<cnoid::Vector3>> safeHulls; // 要素数任意．generate frame．endCoordsが環境と干渉せず、かつ到達できる領域
 
-  void calcSafeHulls(const std::vector<GaitParam::FootStepNodes>& footStepNodesList, const std::vector<std::vector<cnoid::Vector2> > steppable_region, const std::vector<double> steppable_height, std::vector<std::vector<cnoid::Vector3> > o_steppableHulls, std::vector<double> o_steppableHeights, std::vector<std::vector<cnoid::Vector3>> o_safeHulls) const; // footStepNodesListをもとにstridelimitatinoを満たしsteppableなregionを計算
+  void calcSafeHulls(const std::vector<GaitParam::FootStepNodes> footStepNodesList, const std::vector<std::vector<cnoid::Vector2> > steppable_region, const std::vector<double> steppable_height, std::vector<std::vector<cnoid::Vector3>>& o_steppableHulls, std::vector<double>& o_steppableHeights, std::vector<std::vector<cnoid::Vector3>>& o_safeHulls) const; // footStepNodesListをもとにstridelimitatinoを満たしsteppableなregionを計算
 
   void updateSafeFootStep(std::vector<GaitParam::FootStepNodes>& footStepNodesList, const std::vector<std::vector<cnoid::Vector3> > o_steppableHulls, const std::vector<double> o_steppableHeights, const std::vector<std::vector<cnoid::Vector3>> o_safeHulls) const; // footStepNodesListの先頭をSafeHullに近づけるように修正
   
