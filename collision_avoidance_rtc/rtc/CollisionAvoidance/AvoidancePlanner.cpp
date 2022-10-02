@@ -78,12 +78,17 @@ void AvoidancePlanner::updateSafeFootStep(std::vector<GaitParam::FootStepNodes>&
   double distance = std::numeric_limits<double>::max();
   for(int i=0;i<safeHulls.size();i++){
      Eigen::Vector3d p = mathutil::calcNearestPointOfHull(footStepNodesList[0].dstCoords[swingLeg].translation(), safeHulls[i]);
-    double d = (p - footStepNodesList[0].dstCoords[swingLeg].translation()).norm();
+     Eigen::Vector3d fs(footStepNodesList[0].dstCoords[swingLeg].translation()[0], footStepNodesList[0].dstCoords[swingLeg].translation()[1], 0); // 平面が前提
+     double d = (p - fs).norm();
     if(distance > d){
       distance = d;
       nearestPoint = p;
     }
   }
+  //高さも出してはいるが、厳密に高さ方向の軌道を求めているわけではないので高さ方向の干渉は正確ではない
+  for(int i=0;i<steppableHulls.size();i++){
+    if(mathutil::isInsideHull(nearestPoint, steppableHulls[i])) nearestPoint[2] = steppableHeights[i]; //zもx,y同様に扱いたいところだが、斜め領域等のため現状は平均値を採用
+    }
   // TODO 高さ．どのsteppable_hullの中にあるかを調べて同じ位置のsteppable_heightにする．
   footStepNodesList[0].dstCoords[swingLeg].translation() = nearestPoint;
 };
