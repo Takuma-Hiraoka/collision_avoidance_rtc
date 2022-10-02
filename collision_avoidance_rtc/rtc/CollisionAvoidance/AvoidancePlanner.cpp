@@ -51,7 +51,36 @@ void AvoidancePlanner::calcSafeHulls(const std::vector<GaitParam::FootStepNodes>
 
   o_steppableHulls = steppableHulls;
   o_steppableHeights = steppableHeights;
-  o_safeHulls = candidates;
+  o_safeHulls = candidates;  
+};
 
-  
+void AvoidancePlanner::updateSafeFootStep(std::vector<GaitParam::FootStepNodes>& footStepNodesList, const std::vector<std::vector<cnoid::Vector3> > steppableHulls, const std::vector<double> steppableHeights, const std::vector<std::vector<cnoid::Vector3>> safeHulls) const {
+  // 現在片足支持期で、次が両足支持期であるときのみ、行う
+  if(!(footStepNodesList.size() > 1 &&
+       (footStepNodesList[1].isSupportPhase[RLEG] && footStepNodesList[1].isSupportPhase[LLEG]) &&
+       ((footStepNodesList[0].isSupportPhase[RLEG] && !footStepNodesList[0].isSupportPhase[LLEG]) || (!footStepNodesList[0].isSupportPhase[RLEG] && footStepNodesList[0].isSupportPhase[LLEG]))))
+     return;
+
+  if(safeHulls.size() == 0) return;
+
+  int swingLeg = footStepNodesList[0].isSupportPhase[RLEG] ? LLEG : RLEG;
+  int supportLeg = (swingLeg == RLEG) ? LLEG : RLEG;
+
+  for(int i=0;i<safeHulls.size();i++){
+    if(mathutil::isInsideHull(footStepNodesList[0].dstCoords[swingLeg].translation(), safeHulls[i])) return;
+  }
+
+  // 最近傍点に修正する。一歩で乗り越えてしまうような薄い壁は無視してしまう．
+  Eigen::Vector3d nearestPoint = Eigen::Vector3d::Zero();
+  double distance = std::numeric_limits<double>::max();
+  for(int i=0;i<safeHulls.size();i++){
+     Eigen::Vector3d p = mathutil::calcNearestPointOfHull(footStepNodesList[0].dstCoords[swingLeg].translation(), safeHulls[i]);
+    double d = (p - footStepNodesList[0].dstCoords[swingLeg].translation()).norm();
+    if(distance > d){
+      distance = d;
+      nearestPoint = p;
+    }
+  }
+  // TODO 高さ．どのsteppable_hullの中にあるかを調べて同じ位置のsteppable_heightにする．
+  footStepNodesList[0].dstCoords[swingLeg].translation() = nearestPoint;
 };
