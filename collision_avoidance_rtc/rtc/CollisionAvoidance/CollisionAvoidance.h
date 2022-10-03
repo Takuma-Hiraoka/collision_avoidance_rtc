@@ -11,6 +11,7 @@
 #include "auto_stabilizer_msgs/idl/AutoStabilizer.hh"
 #include "GaitParam.h"
 #include "AvoidancePlanner.h"
+#include "ComCoordsGenerator.h"
 
 class CollisionAvoidance : public RTC::DataFlowComponentBase{
 protected:
@@ -32,6 +33,7 @@ public:
 
   GaitParam gaitParam_;
   AvoidancePlanner avoidancePlanner_;
+  ComCoordsGenerator comCoordsGenerator_;
 };
 
 extern "C"

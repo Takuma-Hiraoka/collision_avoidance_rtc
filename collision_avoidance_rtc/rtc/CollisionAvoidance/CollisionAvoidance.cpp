@@ -22,6 +22,8 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
   cnoid::TimeMeasure timer;
   timer.begin();
   // TODO 本来はserviceにするべき？
+
+  // read port
   if(this->m_steppableRegionIn_.isNew()){
     m_steppableRegionIn_.read();
     if ((gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && (m_steppableRegion_.data.l_r == 0)) ||
@@ -80,6 +82,9 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
   // footstepを着地可能な領域になおす
   avoidancePlanner_.updateSafeFootStep(gaitParam_.footstepNodesList, avoidancePlanner_.steppableHulls, avoidancePlanner_.steppableHeights, avoidancePlanner_.safeHulls);
 
+  comCoordsGenerator_.calcZmpTrajectory(gaitParam_, gaitParam_.refZmpTraj);
+  
+  // write port
   this->m_footStepNodesList_.data.length(gaitParam_.footstepNodesList.size());
   for(int i=0;i<this->m_footStepNodesList_.data.length();i++) {
     this->m_footStepNodesList_.data[i].dstCoords.length(NUM_LEGS);

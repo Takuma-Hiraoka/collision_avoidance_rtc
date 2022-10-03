@@ -4,6 +4,7 @@
 #include <cnoid/EigenTypes>
 #include <cnoid/EigenUtil>
 #include <vector>
+#include "FootGuidedController.h"
 
 enum leg_enum{RLEG=0, LLEG=1, NUM_LEGS=2};
 
@@ -27,6 +28,7 @@ public:
   double omega;
   cnoid::Vector3 l;
   double dt;
+  std::vector<footguidedcontroller::LinearTrajectory<cnoid::Vector3> > refZmpTraj;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const std::vector<GaitParam::FootStepNodes>& footstepNodesList) {
