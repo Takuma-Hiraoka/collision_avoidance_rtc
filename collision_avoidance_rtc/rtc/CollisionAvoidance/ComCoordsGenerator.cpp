@@ -54,7 +54,7 @@ void ComCoordsGenerator::calcZmpTrajectory(const GaitParam gaitParam, std::vecto
   o_refZmpTraj = refZmpTraj;
 }
 
-void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3& o_tgtCog) const{
+void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3& o_tgtCog) const{ // TODO tgtCogがジャンプすることがある？
   if (!(gaitParam.footstepNodesList.size() > 1)) return;
   cnoid::Vector3 genDCM = gaitParam.genCog + gaitParam.genCogVel / gaitParam.omega;
 

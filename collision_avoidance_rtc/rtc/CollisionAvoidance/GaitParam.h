@@ -33,6 +33,17 @@ public:
 
   // IK用
   cnoid::Vector3 tgtCog;
+  std::vector<std::string> eeName; // constant. 要素数2以上. 0番目がrleg, 1番目がllegという名前である必要がある
+  std::vector<std::string> eeParentLink; // constant. 要素数と順序はeeNameと同じ. 必ずrobot->link(parentLink)がnullptrではないことを約束する. そのため、毎回robot->link(parentLink)がnullptrかをチェックしなくても良い
+  std::vector<cnoid::Position> eeLocalT; // constant. 要素数と順序はeeNameと同じ. Parent Link Frame
+  std::vector<cnoid::Position> eeTargetPose; // 要素数と順序はeeNameと同じ.generate frame.
+
+  void push_backEE(const std::string& name_, const std::string& parentLink_, const cnoid::Position& localT_){
+    eeName.push_back(name_);
+    eeParentLink.push_back(parentLink_);
+    eeLocalT.push_back(localT_);
+    eeTargetPose.push_back(cnoid::Position::Identity());
+  }
 };
 
 inline std::ostream &operator<<(std::ostream &os, const std::vector<GaitParam::FootStepNodes>& footstepNodesList) {

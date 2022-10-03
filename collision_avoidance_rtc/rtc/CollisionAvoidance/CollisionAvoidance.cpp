@@ -32,6 +32,59 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
     std::cerr << "\x1b[31m[" << this->m_profile.instance_name << "] " << "failed to load model[" << fileName << "]" << "\x1b[39m" << std::endl;
     return RTC::RTC_ERROR;
   }
+
+  
+  {
+    // load end_effector
+    std::string endEffectors;
+    if(this->getProperties().hasKey("end_effectors"))endEffectors = std::string(this->getProperties()["end_effectors"]);
+    else endEffectors = std::string(this->m_pManager->getConfig()["end_effectors"]); // 引数 -o で与えたプロパティを捕捉
+    std::cerr << "[" << this->m_profile.instance_name << "] end_effectors: " << endEffectors <<std::endl;
+    std::stringstream ss_endEffectors(endEffectors);
+    std::string buf;
+    while(std::getline(ss_endEffectors, buf, ',')){
+      std::string name;
+      std::string parentLink;
+      cnoid::Vector3 localp;
+      cnoid::Vector3 localaxis;
+      double localangle;
+
+      //   name, parentLink, (not used), x, y, z, theta, ax, ay, az
+      name = buf;
+      if(!std::getline(ss_endEffectors, buf, ',')) break; parentLink = buf;
+      if(!std::getline(ss_endEffectors, buf, ',')) break; // not used
+      if(!std::getline(ss_endEffectors, buf, ',')) break; localp[0] = std::stod(buf);
+      if(!std::getline(ss_endEffectors, buf, ',')) break; localp[1] = std::stod(buf);
+      if(!std::getline(ss_endEffectors, buf, ',')) break; localp[2] = std::stod(buf);
+      if(!std::getline(ss_endEffectors, buf, ',')) break; localaxis[0] = std::stod(buf);
+      if(!std::getline(ss_endEffectors, buf, ',')) break; localaxis[1] = std::stod(buf);
+      if(!std::getline(ss_endEffectors, buf, ',')) break; localaxis[2] = std::stod(buf);
+      if(!std::getline(ss_endEffectors, buf, ',')) break; localangle = std::stod(buf);
+
+      // check validity
+      name.erase(std::remove(name.begin(), name.end(), ' '), name.end()); // remove whitespace
+      parentLink.erase(std::remove(parentLink.begin(), parentLink.end(), ' '), parentLink.end()); // remove whitespace
+      if(!this->robot_->link(parentLink)){
+        std::cerr << "\x1b[31m[" << this->m_profile.instance_name << "] " << " link [" << parentLink << "]" << " is not found for " << name << "\x1b[39m" << std::endl;
+        return RTC::RTC_ERROR;
+      }
+      cnoid::Matrix3 localR;
+      if(localaxis.norm() == 0) localR = cnoid::Matrix3::Identity();
+      else localR = Eigen::AngleAxisd(localangle, localaxis.normalized()).toRotationMatrix();
+      cnoid::Position localT;
+      localT.translation() = localp;
+      localT.linear() = localR;
+
+      this->gaitParam_.push_backEE(name, parentLink, localT);
+    }
+
+    // 0番目が右脚. 1番目が左脚. という仮定がある.
+    if(this->gaitParam_.eeName.size() < NUM_LEGS || this->gaitParam_.eeName[RLEG] != "rleg" || this->gaitParam_.eeName[LLEG] != "lleg"){
+      std::cerr << "\x1b[31m[" << this->m_profile.instance_name << "] " << " this->gaitParam_.eeName.size() < 2 || this->gaitParams.eeName[0] != \"rleg\" || this->gaitParam_.eeName[1] != \"lleg\" not holds" << "\x1b[39m" << std::endl;
+      return RTC::RTC_ERROR;
+    }
+  }
+
   
   return RTC::RTC_OK;
 }
