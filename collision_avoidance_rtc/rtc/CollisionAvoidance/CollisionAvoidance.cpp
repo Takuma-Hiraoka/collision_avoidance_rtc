@@ -2,6 +2,9 @@
 
 CollisionAvoidance::CollisionAvoidance(RTC::Manager* manager):
   RTC::DataFlowComponentBase(manager),
+  m_qIn_("qIn", m_q_),
+  m_basePosIn_("basePosIn", m_basePos_),
+  m_baseRpyIn_("baseRpyIn", m_baseRpy_),
   m_steppableRegionIn_("steppableRegionIn", m_steppableRegion_),
   m_refFootStepNodesListIn_("refFootStepNodesListIn", m_refFootStepNodesList_),
   m_comPredictParamIn_("comPredictParamIn", m_comPredictParam_),
@@ -10,10 +13,26 @@ CollisionAvoidance::CollisionAvoidance(RTC::Manager* manager):
 }
 
 RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
+  addInPort("qIn", this->m_qIn_);
+  addInPort("basePosIn", this->m_basePosIn_);
+  addInPort("baseRpyIn", this->m_baseRpyIn_);
   addInPort("steppableRegionIn", m_steppableRegionIn_);
   addInPort("refFootStepNodesListIn", m_refFootStepNodesListIn_);
   addInPort("comPredictParamIn", m_comPredictParamIn_);
   addOutPort("footStepNodesListOut", m_footStepNodesListOut_);
+
+  // load robot model
+  cnoid::BodyLoader bodyLoader;
+  std::string fileName;
+  if(this->getProperties().hasKey("model")) fileName = std::string(this->getProperties()["model"]);
+  else fileName = std::string(this->m_pManager->getConfig()["model"]); // 引数 -o で与えたプロパティを捕捉
+  std::cerr << "[" << this->m_profile.instance_name << "] model: " << fileName <<std::endl;
+  this->robot_ = bodyLoader.load(fileName);
+  if(!this->robot_){
+    std::cerr << "\x1b[31m[" << this->m_profile.instance_name << "] " << "failed to load model[" << fileName << "]" << "\x1b[39m" << std::endl;
+    return RTC::RTC_ERROR;
+  }
+  
   return RTC::RTC_OK;
 }
 
@@ -24,6 +43,21 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
   // TODO 本来はserviceにするべき？
 
   // read port
+  if (this->m_qIn_.isNew()) this->m_qIn_.read();
+  if (this->m_basePosIn_.isNew()) this->m_basePosIn_.read();
+  if (this->m_baseRpyIn_.isNew()) this->m_baseRpyIn_.read();
+
+  if(this->m_q_.data.length() == this->robot_->numJoints()){
+    for ( int i = 0; i < this->robot_->numJoints(); i++ ){
+      this->robot_->joint(i)->q() = this->m_q_.data[i];
+    }
+  }
+  this->robot_->rootLink()->p()[0] = m_basePos_.data.x;
+  this->robot_->rootLink()->p()[1] = m_basePos_.data.y;
+  this->robot_->rootLink()->p()[2] = m_basePos_.data.z;
+  this->robot_->rootLink()->R() = cnoid::rotFromRpy(m_baseRpy_.data.r, m_baseRpy_.data.p, m_baseRpy_.data.y);
+  this->robot_->calcForwardKinematics();
+  
   if(this->m_steppableRegionIn_.isNew()){
     m_steppableRegionIn_.read();
     if ((gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && (m_steppableRegion_.data.l_r == 0)) ||

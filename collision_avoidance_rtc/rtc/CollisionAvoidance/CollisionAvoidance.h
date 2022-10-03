@@ -8,6 +8,8 @@
 
 #include <cnoid/EigenTypes>
 #include <cnoid/TimeMeasure>
+#include <cnoid/Body>
+#include <cnoid/BodyLoader>
 #include "auto_stabilizer_msgs/idl/AutoStabilizer.hh"
 #include "GaitParam.h"
 #include "AvoidancePlanner.h"
@@ -16,6 +18,12 @@
 class CollisionAvoidance : public RTC::DataFlowComponentBase{
 protected:
 
+  RTC::TimedDoubleSeq m_q_;
+  RTC::InPort<RTC::TimedDoubleSeq> m_qIn_;
+  RTC::TimedPoint3D m_basePos_;
+  RTC::InPort<RTC::TimedPoint3D> m_basePosIn_;
+  RTC::TimedOrientation3D m_baseRpy_;
+  RTC::InPort<RTC::TimedOrientation3D> m_baseRpyIn_;
   auto_stabilizer_msgs::TimedSteppableRegion m_steppableRegion_;
   RTC::InPort <auto_stabilizer_msgs::TimedSteppableRegion> m_steppableRegionIn_;
   auto_stabilizer_msgs::TimedFootStepNodesList m_refFootStepNodesList_;
@@ -34,6 +42,10 @@ public:
   GaitParam gaitParam_;
   AvoidancePlanner avoidancePlanner_;
   ComCoordsGenerator comCoordsGenerator_;
+
+private:
+  cnoid::BodyPtr robot_;
+  
 };
 
 extern "C"
