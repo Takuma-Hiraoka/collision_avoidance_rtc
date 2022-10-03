@@ -61,6 +61,26 @@ namespace footguidedcontroller{
     return;
   };
 
+    // ur_のサイズは1以上でなければならない. ur_にtime=0の要素があっても、その要素のstartとgoalが同じなら破綻しない. ただし、ur_のtimeの和が0だと破綻する
+  template <typename T> T calcFootGuidedControlCoef(const double& w, const T& l, const T& x0, const std::vector<LinearTrajectory<T> >& ur_) {
+    const int n = ur_.size();
+
+    std::vector<LinearTrajectory<T> > ur;
+    ur.reserve(n + 2);
+    ur.push_back(LinearTrajectory<T>(x0-l, x0-l, 0.0)); // j=0
+    std::copy(ur_.begin(), ur_.end(), std::back_inserter(ur)); // j=1 ~ j=n
+    ur.push_back(LinearTrajectory<T>(ur_.back().getGoal(),ur_.back().getGoal(), 0.0)); // j=n+1
+
+    T u = x0*0.0;
+    double Tj = 0.0;
+    for(int j=0;j<=n;j++){
+      Tj += ur.at(j).getTime();
+      u += exp(- w * Tj) * (ur.at(j).getGoal() - ur.at(j+1).getStart() + (ur.at(j).getSlope() - ur.at(j+1).getSlope()) / w);
+    }
+
+    return 2 / (1 - exp(-2 * w * Tj)) * u;
+  };
+
 };
 
 inline std::ostream &operator<<(std::ostream &os, const std::vector<footguidedcontroller::LinearTrajectory<cnoid::Vector3> > refZmpTraj) {

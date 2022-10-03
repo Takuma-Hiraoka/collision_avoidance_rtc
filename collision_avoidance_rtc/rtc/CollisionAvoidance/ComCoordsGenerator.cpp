@@ -54,5 +54,46 @@ void ComCoordsGenerator::calcZmpTrajectory(const GaitParam gaitParam, std::vecto
   o_refZmpTraj = refZmpTraj;
 }
 
-void ComCoordsGenerator::calcComCoords() const{
+void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3& o_tgtCog) const{
+  if (!(gaitParam.footstepNodesList.size() > 1)) return;
+  cnoid::Vector3 genDCM = gaitParam.genCog + gaitParam.genCogVel / gaitParam.omega;
+
+  // zmp軌道を作る
+  cnoid::Vector3 coef = footguidedcontroller::calcFootGuidedControlCoef(gaitParam.omega, gaitParam.l, genDCM, gaitParam.refZmpTraj);
+
+  // 次の一歩の終了時まで、刻み幅gaitParam.dtで積分．実際はすでに揺り戻しが発生しているため正確ではない
+  {
+    double predict_time = 0.0;
+    cnoid::Vector3 u = gaitParam.refZmpTraj[0].getStart();
+    cnoid::Vector3 c = gaitParam.genCog;
+    cnoid::Vector3 dc = gaitParam.genCogVel;
+    double w = gaitParam.omega;
+    cnoid::Vector3 l = gaitParam.l;
+    cnoid::Vector3 next_c = cnoid::Vector3(0,0,0);
+    cnoid::Vector3 next_dc = cnoid::Vector3(0,0,0);
+    double dt = gaitParam.dt;
+    
+    for (int i=0;(i<gaitParam.footstepNodesList.size()) && (i<2);i++) {
+      predict_time += gaitParam.footstepNodesList[i].remainTime / (i+1); //TODO 正確な時間
+    }
+    double start_time = 0.0;
+    int traj_index = 0;
+    cnoid::Vector3 ur = cnoid::Vector3(0,0,0);
+    
+    for (double t;t<predict_time;t += dt) {
+      if(t > (start_time + gaitParam.refZmpTraj[traj_index].getTime())) {
+	traj_index++;
+	start_time += gaitParam.refZmpTraj[traj_index].getTime();
+      }
+      ur = gaitParam.refZmpTraj[traj_index].getStart() + (t - start_time) * gaitParam.refZmpTraj[traj_index].getSlope();
+      u = ur + coef * exp(-w*t);
+
+      // 1 step
+      next_c = c + dc * dt;
+      next_dc = dc + w * w * (c - u - l) * dt;
+      c = next_c;
+      dc = next_dc;
+    }
+    o_tgtCog = c;
+  }
 }

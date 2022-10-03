@@ -22,13 +22,17 @@ public:
   std::vector<std::vector<cnoid::Vector2> > steppable_region; // 要素数任意. supportLeg相対. endCoordsが存在できる領域
   std::vector<double> steppable_height; // 要素数はsteppable_regionと同じ. supportLeg相対. 各polygonごとのおおよその値.
 
-  cnoid::Vector3 curZmp;
-  cnoid::Vector3 genCog;
-  cnoid::Vector3 genCogVel;
-  double omega;
-  cnoid::Vector3 l;
-  double dt;
+  // 予見制御用
+  cnoid::Vector3 curZmp = cnoid::Vector3(0,0,0);
+  cnoid::Vector3 genCog = cnoid::Vector3(0,0,0);
+  cnoid::Vector3 genCogVel = cnoid::Vector3(0,0,0);
+  double omega = std::sqrt(9.8 / 1.0);
+  cnoid::Vector3 l = cnoid::Vector3(0,0,0);
+  double dt = 0.2;
   std::vector<footguidedcontroller::LinearTrajectory<cnoid::Vector3> > refZmpTraj;
+
+  // IK用
+  cnoid::Vector3 tgtCog;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const std::vector<GaitParam::FootStepNodes>& footstepNodesList) {
