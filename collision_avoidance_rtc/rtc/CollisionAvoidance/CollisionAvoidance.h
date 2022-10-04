@@ -10,11 +10,14 @@
 #include <cnoid/TimeMeasure>
 #include <cnoid/Body>
 #include <cnoid/BodyLoader>
+#include <choreonoid_qhull/choreonoid_qhull.h>
+#include <choreonoid_vclip/choreonoid_vclip.h>
 #include "auto_stabilizer_msgs/idl/AutoStabilizer.hh"
 #include "GaitParam.h"
 #include "AvoidancePlanner.h"
 #include "ComCoordsGenerator.h"
 #include "PrioritizedIKSolver.h"
+#include "CollisionChecker.h"
 
 class CollisionAvoidance : public RTC::DataFlowComponentBase{
 protected:
@@ -39,14 +42,17 @@ public:
   CollisionAvoidance(RTC::Manager* manager);
   virtual RTC::ReturnCode_t onInitialize();
   virtual RTC::ReturnCode_t onExecute(RTC::UniqueId ec_id);
-
+  
   GaitParam gaitParam_;
   AvoidancePlanner avoidancePlanner_;
   ComCoordsGenerator comCoordsGenerator_;
   PrioritizedIKSolver iksolver_;
+  CollisionChecker collisionChecker_;
 
 private:
   cnoid::BodyPtr robot_;
+  std::unordered_map<cnoid::LinkPtr, std::shared_ptr<Vclip::Polyhedron> > vclipModelMap_;
+  std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > collisionPairs_;
   
 };
 

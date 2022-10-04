@@ -85,7 +85,46 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
     }
   }
 
-  this->iksolver_.init(this->robot_, this->gaitParam_);
+  // calculate convex hull for all collision mesh
+  choreonoid_qhull::convertAllCollisionToConvexHull(this->robot_);
+  // generate VClip model
+  for(int i=0;i<this->robot_->numLinks();i++){
+    std::shared_ptr<Vclip::Polyhedron> vclipmodel = choreonoid_vclip::convertToVClipModel(this->robot_->link(i)->collisionShape());
+    this->vclipModelMap_[this->robot_->link(i)] = vclipmodel;
+    if(!vclipmodel){
+      std::cerr << "[" << m_profile.instance_name << "] " << "vclip model " << this->robot_->link(i)->name() << " failed" << std::endl;
+    }
+  }
+
+  // collision_pair
+  {
+    std::string collision_pairProp;
+    if(this->getProperties().hasKey("collision_pair")) collision_pairProp = std::string(this->getProperties()["collision_pair"]);
+    else collision_pairProp = std::string(this->m_pManager->getConfig()["collision_pair"]); // 引数 -o で与えたプロパティを捕捉
+    std::cerr << "[" << this->m_profile.instance_name << "] collision_pair: " << collision_pairProp <<std::endl;
+    std::istringstream iss(collision_pairProp);
+    std::string tmp;
+    while (getline(iss, tmp, ' ')) {
+      size_t pos = tmp.find_first_of(':');
+      std::string name1 = tmp.substr(0, pos), name2 = tmp.substr(pos+1);
+      cnoid::LinkPtr link1 = this->robot_->link(name1), link2 = this->robot_->link(name2);
+      if ( !link1 ) {
+	std::cerr << "[" << this->m_profile.instance_name << "] Could not find robot link " << name1 << std::endl;
+	continue;
+      }
+      if ( !link2 ) {
+	std::cerr << "[" << this->m_profile.instance_name << "] Could not find robot link " << name2 << std::endl;
+	continue;
+      }
+      std::cerr << "[" << this->m_profile.instance_name << "] check collisions between " << link1->name() << " and " <<  link2->name() << std::endl;
+      std::shared_ptr<CollisionChecker::CollisionPair> pair = std::make_shared<CollisionChecker::CollisionPair>();
+      pair->link1 = link1;
+      pair->link2 = link2;
+      this->collisionPairs_.push_back(pair);
+    }
+  }
+
+  this->iksolver_.init(this->robot_, this->gaitParam_, this->collisionPairs_);
   
   return RTC::RTC_OK;
 }
@@ -177,9 +216,12 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
        (gaitParam_.footstepNodesList[1].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[1].isSupportPhase[LLEG]) &&
        ((gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && !gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]) || (!gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]))){
     for(int i=0;i<NUM_LEGS;i++) {
-      gaitParam_.eeTargetPose[i] = gaitParam_.footstepNodesList[0].dstCoords[i];      
+      gaitParam_.eeTargetPose[i] = gaitParam_.footstepNodesList[0].dstCoords[i];
     }
-    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, robot_);
+    std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > nan; // はじめは干渉を考えない
+    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, robot_);
+    collisionChecker_.checkSelfCollision(this->collisionPairs_, this->vclipModelMap_);
+    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->collisionPairs_, robot_);
   }// TODO 計算するタイミングを統一する
   
   // write port

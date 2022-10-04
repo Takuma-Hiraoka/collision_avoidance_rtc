@@ -5,6 +5,8 @@ find_package(catkin REQUIRED COMPONENTS
   auto_stabilizer_msgs
   ik_constraint
   prioritized_inverse_kinematics_solver
+  choreonoid_vclip
+  choreonoid_qhull
   )
 find_package(choreonoid REQUIRED)
 find_package(OsqpEigen REQUIRED)
@@ -28,6 +30,7 @@ rtmbuild_add_library(CollisionAvoidance SHARED
   MathUtil.cpp
   ComCoordsGenerator.cpp
   PrioritizedIKSolver.cpp
+  CollisionChecker.cpp
   )
 target_link_libraries(CollisionAvoidance
   ${catkin_LIBRARIES}
