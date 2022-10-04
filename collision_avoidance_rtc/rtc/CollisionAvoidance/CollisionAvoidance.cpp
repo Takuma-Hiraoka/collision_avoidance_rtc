@@ -204,6 +204,11 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
        ((gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && !gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]) || (!gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]))){
     //    this->m_footStepNodesList_.data[0].remainTime = gaitParam_.footstepNodesList[0].remainTime - timer.measure(); // 計算時間を引く．TODO footstepがこのRTCに届くまでの時間．そもそもremainTimeは必要か？
     // std::cerr << "execution time : " << timer.measure() << std::endl;
+    std::cerr << "out joint angle :";
+    for ( int i = 0; i < this->robot_->numJoints(); i++ ){
+      std::cerr << " " << this->robot_->joint(i)->q() * 180 / M_PI; // for euslisp debug
+    }
+    std::cerr << std::endl;
     this->m_footStepNodesListOut_.write();
   }
   return RTC::RTC_OK;
