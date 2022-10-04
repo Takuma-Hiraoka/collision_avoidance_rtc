@@ -72,9 +72,9 @@ void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3
     cnoid::Vector3 next_c = cnoid::Vector3(0,0,0);
     cnoid::Vector3 next_dc = cnoid::Vector3(0,0,0);
     double dt = gaitParam.dt;
-    
-    for (int i=0;(i<gaitParam.footstepNodesList.size()) && (i<2);i++) {
-      predict_time += gaitParam.footstepNodesList[i].remainTime / (i+1); //TODO 正確な時間
+
+    for (int i=0;(i<gaitParam.refZmpTraj.size()) && (i<2);i++) {
+      predict_time += gaitParam.refZmpTraj[i].getTime() / (i+1); //TODO 正確な時間
     }
     double start_time = 0.0;
     int traj_index = 0;
@@ -82,8 +82,8 @@ void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3
     
     for (double t;t<predict_time;t += dt) {
       if(t > (start_time + gaitParam.refZmpTraj[traj_index].getTime())) {
-	traj_index++;
 	start_time += gaitParam.refZmpTraj[traj_index].getTime();
+	traj_index++;
       }
       ur = gaitParam.refZmpTraj[traj_index].getStart() + (t - start_time) * gaitParam.refZmpTraj[traj_index].getSlope();
       u = ur + coef * exp(-w*t);
@@ -93,6 +93,7 @@ void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3
       next_dc = dc + w * w * (c - u - l) * dt;
       c = next_c;
       dc = next_dc;
+
     }
     o_tgtCog = c;
   }
