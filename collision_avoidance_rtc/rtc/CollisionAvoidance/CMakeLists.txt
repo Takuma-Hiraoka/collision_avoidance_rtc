@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   choreonoid_qhull
   octomap_msgs_rtmros_bridge
   octomap_msgs
+  moveit_core
   )
 find_package(choreonoid REQUIRED)
 find_package(OsqpEigen REQUIRED)

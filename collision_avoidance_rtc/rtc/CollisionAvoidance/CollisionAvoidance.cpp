@@ -2,6 +2,7 @@
 
 #include <cnoid/MeshExtractor>
 #include <cnoid/BodyLoader>
+#include <octomap_msgs/conversions.h>
 
 static void addMesh(cnoid::SgMeshPtr model, std::shared_ptr<cnoid::MeshExtractor> meshExtractor){
   cnoid::SgMeshPtr mesh = meshExtractor->currentMesh();
@@ -163,7 +164,7 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
       std::shared_ptr<CollisionChecker::CollisionPair> pair = std::make_shared<CollisionChecker::CollisionPair>();
       pair->link1 = link1;
       pair->link2 = link2;
-      this->collisionPairs_.push_back(pair);
+      this->selfCollisionPairs_.push_back(pair);
     }
   }
 
@@ -236,7 +237,7 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
 
   }
 
-  this->iksolver_.init(this->robot_, this->gaitParam_, this->collisionPairs_);
+  this->iksolver_.init(this->robot_, this->gaitParam_, this->selfCollisionPairs_);
   
   return RTC::RTC_OK;
 }
@@ -316,10 +317,10 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       gaitParam_.dt = m_comPredictParam_.dt;
     }
 
-    /*    if (this->thread_done_ && this->thread_){
+    if (this->thread_done_ && this->thread_){
       this->thread_->join();
       this->thread_ = nullptr;
-      }*/
+    }
     if (this->m_octomapIn_.isNew()) {
       this->m_octomapIn_.read();
       std::shared_ptr<octomap_msgs::Octomap> octomap = std::make_shared<octomap_msgs::Octomap>();
@@ -335,10 +336,10 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       fieldOrigin.translation()[1] = this->m_octomap_.data.origin.position.y;
       fieldOrigin.translation()[2] = this->m_octomap_.data.origin.position.z;
       fieldOrigin.linear() = cnoid::rotFromRpy(this->m_octomap_.data.origin.orientation.r,this->m_octomap_.data.origin.orientation.p,this->m_octomap_.data.origin.orientation.y);
-      /*if ( !this->thread_) {
+      if ( !this->thread_) {
 	this->thread_done_ = false;
-	this->thread_ = std::make_shared<std::thread>(&OctomapCollisionChecker::octomapCallback, this, octomap, fieldOrigin);
-	}*/
+	this->thread_ = std::make_shared<std::thread>(&CollisionAvoidance::octomapCallback, this, octomap, fieldOrigin);
+      }
     }
   } // read port
 
@@ -356,9 +357,12 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       gaitParam_.eeTargetPose[i] = gaitParam_.footstepNodesList[0].dstCoords[i];
     }
     std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > nan; // はじめは干渉を考えない
-    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, robot_);
-    collisionChecker_.checkSelfCollision(this->collisionPairs_, this->vclipModelMap_);
-    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->collisionPairs_, robot_);
+    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, nan, robot_);
+    if(this->field_){
+      collisionChecker_.checkEnvCollision(this->field_, this->fieldOrigin_, this->targetLinks_, this->verticesMap_, this->envCollisionPairs_);
+    }
+    collisionChecker_.checkSelfCollision(this->selfCollisionPairs_, this->vclipModelMap_);
+    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_);
 
     // std::cerr << "execution time : " << timer.measure() << std::endl;
     std::cerr << "out joint angle :";
@@ -390,6 +394,47 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
   
   return RTC::RTC_OK;
 }
+
+void CollisionAvoidance::octomapCallback(std::shared_ptr<octomap_msgs::Octomap> octomap, cnoid::Position fieldOrigin){
+
+  std::shared_ptr<octomap::AbstractOcTree> absoctree = std::shared_ptr<octomap::AbstractOcTree>(octomap_msgs::msgToMap(*octomap));
+  if(!absoctree) {
+    this->thread_done_ = true;
+    return;
+  }
+
+  std::shared_ptr<octomap::OcTree> octree = std::dynamic_pointer_cast<octomap::OcTree>(absoctree);
+
+  if(!octree){
+    std::shared_ptr<octomap::ColorOcTree> coloroctree = std::dynamic_pointer_cast<octomap::ColorOcTree>(absoctree);
+    if(coloroctree){
+      std::stringstream ss;
+      coloroctree->writeBinary(ss);
+      octree = std::make_shared<octomap::OcTree>(absoctree->getResolution());
+      if(!octree->readBinary(ss)) octree = nullptr;
+    }
+  }
+
+  if(octree){
+    double minx,miny,minz; octree->getMetricMin(minx,miny,minz);
+    double maxx,maxy,maxz; octree->getMetricMax(maxx,maxy,maxz);
+    this->field_ = std::make_shared<distance_field::PropagationDistanceField>(*octree,
+                                                                              octomap::point3d(minx,miny,minz),
+                                                                              octomap::point3d(maxx,maxy,maxz),
+                                                                              collisionChecker_.maxDistance_,
+                                                                              true // true: めり込み時に離れる方向を示す. 裏側に行かないよう、minDistanceをある程度大きくせよ
+                                                                              );
+    this->fieldOrigin_ = fieldOrigin;
+    octree->clear(); // destructor of OcTree does not free memory for internal data.
+  }else{
+    this->field_ = nullptr;
+    this->fieldOrigin_ = cnoid::Position::Identity();
+  }
+
+  absoctree->clear(); // destructor of OcTree does not free memory for internal data.
+  this->thread_done_ = true;
+}
+
 
 static const char* CollisionAvoidance_spec[] = {
     

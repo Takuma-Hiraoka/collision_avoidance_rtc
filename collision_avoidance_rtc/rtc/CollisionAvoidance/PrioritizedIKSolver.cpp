@@ -1,22 +1,40 @@
 #include "PrioritizedIKSolver.h"
 
-bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam, const std::vector<std::shared_ptr<CollisionChecker::CollisionPair>> collisionPairs, cnoid::BodyPtr& robot) const{
+bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam, const std::vector<std::shared_ptr<CollisionChecker::CollisionPair>> selfCollisionPairs, const std::vector<std::shared_ptr<CollisionChecker::CollisionPair>> envCollisionPairs, cnoid::BodyPtr& robot) const{
 
   std::vector<std::shared_ptr<IK::IKConstraint> > ikConstraint0;
   std::vector<std::shared_ptr<IK::IKConstraint> > ikConstraint1;
 
-  for(int i=0;i<collisionPairs.size();i++){
-    this->selfcollisionConstraint[i]->A_link() = robot->link(collisionPairs[i]->link1->name().c_str());
-    this->selfcollisionConstraint[i]->A_localp() = collisionPairs[i]->localp1;
-    this->selfcollisionConstraint[i]->B_link() = robot->link(collisionPairs[i]->link2->name().c_str());
-    this->selfcollisionConstraint[i]->B_localp() = collisionPairs[i]->localp2;
-    this->selfcollisionConstraint[i]->tolerance() = 0.01; //TODO
-    this->selfcollisionConstraint[i]->maxError() = 10.0*dt;
-    this->selfcollisionConstraint[i]->precision() = 0.0; // 強制的にIKをmax loopまで回す
-    this->selfcollisionConstraint[i]->weight() = 1.0;
-    this->selfcollisionConstraint[i]->velocityDamper() = 0.1 / dt;
-    this->selfcollisionConstraint[i]->direction() = collisionPairs[i]->direction21;
-    ikConstraint0.push_back(this->selfcollisionConstraint[i]);
+  // self collision
+  for(int i=0;i<selfCollisionPairs.size();i++){
+    this->selfCollisionConstraint[i]->A_link() = robot->link(selfCollisionPairs[i]->link1->name().c_str());
+    this->selfCollisionConstraint[i]->A_localp() = selfCollisionPairs[i]->localp1;
+    this->selfCollisionConstraint[i]->B_link() = robot->link(selfCollisionPairs[i]->link2->name().c_str());
+    this->selfCollisionConstraint[i]->B_localp() = selfCollisionPairs[i]->localp2;
+    this->selfCollisionConstraint[i]->tolerance() = 0.01; //TODO
+    this->selfCollisionConstraint[i]->maxError() = 10.0*dt;
+    this->selfCollisionConstraint[i]->precision() = 0.0; // 強制的にIKをmax loopまで回す
+    this->selfCollisionConstraint[i]->weight() = 1.0;
+    this->selfCollisionConstraint[i]->velocityDamper() = 0.1 / dt;
+    this->selfCollisionConstraint[i]->direction() = selfCollisionPairs[i]->direction21;
+    ikConstraint0.push_back(this->selfCollisionConstraint[i]);
+  }
+
+  this->envCollisionConstraint.clear();
+  for (int i=0;i<envCollisionPairs.size();i++) this->envCollisionConstraint.push_back(std::make_shared<IK::ClientCollisionConstraint>());
+  // env collision
+  for(int i=0;i<envCollisionPairs.size();i++){
+    this->envCollisionConstraint[i]->A_link() = robot->link(envCollisionPairs[i]->link1->name().c_str());
+    this->envCollisionConstraint[i]->A_localp() = envCollisionPairs[i]->localp1;
+    this->envCollisionConstraint[i]->B_link() = nullptr;
+    this->envCollisionConstraint[i]->B_localp() = envCollisionPairs[i]->localp2;
+    this->envCollisionConstraint[i]->tolerance() = 0.04; //TODO
+    this->envCollisionConstraint[i]->maxError() = 10.0*dt;
+    this->envCollisionConstraint[i]->precision() = 0.0; // 強制的にIKをmax loopまで回す
+    this->envCollisionConstraint[i]->weight() = 1.0;
+    this->envCollisionConstraint[i]->velocityDamper() = 1.0 / dt;
+    this->envCollisionConstraint[i]->direction() = envCollisionPairs[i]->direction21;
+    ikConstraint0.push_back(this->envCollisionConstraint[i]);
   }
 
   // EEF
@@ -65,7 +83,7 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
 						     1,//loop
 						     1e-6, // wn
 						     0, //debug
-						     gaitParam.dt //dtでよいのか？
+						     gaitParam.footstepNodesList[0].remainTime
 						     );
 
   return true;

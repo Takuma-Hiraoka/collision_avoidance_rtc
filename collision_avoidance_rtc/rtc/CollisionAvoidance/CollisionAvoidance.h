@@ -6,14 +6,17 @@
 #include <rtm/DataOutPort.h>
 #include <rtm/DataInPort.h>
 
+#include <thread>
+#include <mutex>
 #include <cnoid/EigenTypes>
 #include <cnoid/TimeMeasure>
 #include <cnoid/Body>
 #include <choreonoid_qhull/choreonoid_qhull.h>
 #include <choreonoid_vclip/choreonoid_vclip.h>
 #include <moveit/distance_field/propagation_distance_field.h>
-#include "auto_stabilizer_msgs/idl/AutoStabilizer.hh"
-#include "octomap_msgs_rtmros_bridge/idl/Octomap.hh"
+#include <auto_stabilizer_msgs/idl/AutoStabilizer.hh>
+#include <octomap_msgs_rtmros_bridge/idl/Octomap.hh>
+#include <moveit/distance_field/propagation_distance_field.h>
 #include <octomap_msgs/Octomap.h>
 #include "GaitParam.h"
 #include "AvoidancePlanner.h"
@@ -46,7 +49,9 @@ public:
   CollisionAvoidance(RTC::Manager* manager);
   virtual RTC::ReturnCode_t onInitialize();
   virtual RTC::ReturnCode_t onExecute(RTC::UniqueId ec_id);
-  
+
+  void octomapCallback(std::shared_ptr<octomap_msgs::Octomap> octomap, cnoid::Position fieldOrigin);
+
   GaitParam gaitParam_;
   AvoidancePlanner avoidancePlanner_;
   ComCoordsGenerator comCoordsGenerator_;
@@ -57,10 +62,17 @@ private:
   cnoid::BodyPtr robot_;
   
   std::unordered_map<cnoid::LinkPtr, std::shared_ptr<Vclip::Polyhedron> > vclipModelMap_;
-  std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > collisionPairs_;
+  std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > selfCollisionPairs_;
+  std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > envCollisionPairs_;
 
+  std::shared_ptr<std::thread> thread_;
+  bool thread_done_ = true;
+
+  std::shared_ptr<distance_field::PropagationDistanceField> field_;
+  cnoid::Position fieldOrigin_ = cnoid::Position::Identity();
   std::vector<cnoid::LinkPtr> targetLinks_;
   std::unordered_map<cnoid::LinkPtr, std::vector<cnoid::Vector3f> > verticesMap_;
+
 };
 
 extern "C"

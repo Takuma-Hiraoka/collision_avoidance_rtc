@@ -1,1 +1,0 @@
-takuma@takuma-System-Product-Name.713:1663727226
