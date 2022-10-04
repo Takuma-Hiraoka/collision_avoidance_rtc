@@ -14,6 +14,7 @@
 #include "GaitParam.h"
 #include "AvoidancePlanner.h"
 #include "ComCoordsGenerator.h"
+#include "PrioritizedIKSolver.h"
 
 class CollisionAvoidance : public RTC::DataFlowComponentBase{
 protected:
@@ -42,6 +43,7 @@ public:
   GaitParam gaitParam_;
   AvoidancePlanner avoidancePlanner_;
   ComCoordsGenerator comCoordsGenerator_;
+  PrioritizedIKSolver iksolver_;
 
 private:
   cnoid::BodyPtr robot_;

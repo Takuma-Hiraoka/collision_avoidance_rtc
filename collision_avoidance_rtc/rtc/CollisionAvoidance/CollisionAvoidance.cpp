@@ -85,6 +85,7 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
     }
   }
 
+  this->iksolver_.init(this->robot_, this->gaitParam_);
   
   return RTC::RTC_OK;
 }
@@ -171,6 +172,15 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
 
   comCoordsGenerator_.calcZmpTrajectory(gaitParam_, gaitParam_.refZmpTraj);
   comCoordsGenerator_.calcComCoords(gaitParam_, gaitParam_.tgtCog);
+
+  if (gaitParam_.footstepNodesList.size() > 1 &&
+       (gaitParam_.footstepNodesList[1].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[1].isSupportPhase[LLEG]) &&
+       ((gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && !gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]) || (!gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]))){
+    for(int i=0;i<NUM_LEGS;i++) {
+      gaitParam_.eeTargetPose[i] = gaitParam_.footstepNodesList[0].dstCoords[i];      
+    }
+    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, robot_);
+  }// TODO 計算するタイミングを統一する
   
   // write port
   this->m_footStepNodesList_.data.length(gaitParam_.footstepNodesList.size());
@@ -193,6 +203,7 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
        (gaitParam_.footstepNodesList[1].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[1].isSupportPhase[LLEG]) &&
        ((gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && !gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]) || (!gaitParam_.footstepNodesList[0].isSupportPhase[RLEG] && gaitParam_.footstepNodesList[0].isSupportPhase[LLEG]))){
     //    this->m_footStepNodesList_.data[0].remainTime = gaitParam_.footstepNodesList[0].remainTime - timer.measure(); // 計算時間を引く．TODO footstepがこのRTCに届くまでの時間．そもそもremainTimeは必要か？
+    // std::cerr << "execution time : " << timer.measure() << std::endl;
     this->m_footStepNodesListOut_.write();
   }
   return RTC::RTC_OK;

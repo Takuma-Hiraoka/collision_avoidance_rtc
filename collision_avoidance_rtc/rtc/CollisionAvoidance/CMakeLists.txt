@@ -3,12 +3,16 @@ add_definitions(-Wno-deprecated)
 find_package(catkin REQUIRED COMPONENTS
   rtmbuild
   auto_stabilizer_msgs
+  ik_constraint
+  prioritized_inverse_kinematics_solver
   )
 find_package(choreonoid REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${CHOREONOID_INCLUDE_DIRS}
+  $<TARGET_PROPERTY:OsqpEigen::OsqpEigen,INTERFACE_INCLUDE_DIRECTORIES>
   )
 
 # 相対パスを絶対パスに直す                                                                                                                                                                                  
@@ -23,6 +27,7 @@ rtmbuild_add_library(CollisionAvoidance SHARED
   AvoidancePlanner.cpp
   MathUtil.cpp
   ComCoordsGenerator.cpp
+  PrioritizedIKSolver.cpp
   )
 target_link_libraries(CollisionAvoidance
   ${catkin_LIBRARIES}
