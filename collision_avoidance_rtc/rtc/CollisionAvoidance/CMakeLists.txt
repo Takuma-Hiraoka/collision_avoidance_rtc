@@ -7,6 +7,8 @@ find_package(catkin REQUIRED COMPONENTS
   prioritized_inverse_kinematics_solver
   choreonoid_vclip
   choreonoid_qhull
+  octomap_msgs_rtmros_bridge
+  octomap_msgs
   )
 find_package(choreonoid REQUIRED)
 find_package(OsqpEigen REQUIRED)

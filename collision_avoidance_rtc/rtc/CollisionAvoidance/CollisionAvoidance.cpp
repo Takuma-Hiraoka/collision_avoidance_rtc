@@ -1,5 +1,46 @@
 #include "CollisionAvoidance.h"
 
+#include <cnoid/MeshExtractor>
+#include <cnoid/BodyLoader>
+
+static void addMesh(cnoid::SgMeshPtr model, std::shared_ptr<cnoid::MeshExtractor> meshExtractor){
+  cnoid::SgMeshPtr mesh = meshExtractor->currentMesh();
+  const cnoid::Affine3& T = meshExtractor->currentTransform();
+
+  const int vertexIndexTop = model->getOrCreateVertices()->size();
+
+  const cnoid::SgVertexArray& vertices = *mesh->vertices();
+  const int numVertices = vertices.size();
+  for(int i=0; i < numVertices; ++i){
+    const cnoid::Vector3 v = T * vertices[i].cast<cnoid::Affine3::Scalar>();
+    model->vertices()->push_back(v.cast<cnoid::Vector3f::Scalar>());
+  }
+
+  const int numTriangles = mesh->numTriangles();
+  for(int i=0; i < numTriangles; ++i){
+    cnoid::SgMesh::TriangleRef tri = mesh->triangle(i);
+    const int v0 = vertexIndexTop + tri[0];
+    const int v1 = vertexIndexTop + tri[1];
+    const int v2 = vertexIndexTop + tri[2];
+    model->addTriangle(v0, v1, v2);
+  }
+}
+
+static cnoid::SgMeshPtr convertToSgMesh (const cnoid::SgNodePtr collisionshape){
+  if (!collisionshape) return nullptr;
+
+  std::shared_ptr<cnoid::MeshExtractor> meshExtractor = std::make_shared<cnoid::MeshExtractor>();
+  cnoid::SgMeshPtr model = new cnoid::SgMesh;
+  if(meshExtractor->extract(collisionshape, [&]() { addMesh(model,meshExtractor); })){
+    model->setName(collisionshape->name());
+  }else{
+    std::cerr << "[convertToSgMesh] meshExtractor->extract failed " << collisionshape->name() << std::endl;
+    return nullptr;
+  }
+
+  return model;
+}
+
 CollisionAvoidance::CollisionAvoidance(RTC::Manager* manager):
   RTC::DataFlowComponentBase(manager),
   m_qIn_("qIn", m_q_),
@@ -8,6 +49,7 @@ CollisionAvoidance::CollisionAvoidance(RTC::Manager* manager):
   m_steppableRegionIn_("steppableRegionIn", m_steppableRegion_),
   m_refFootStepNodesListIn_("refFootStepNodesListIn", m_refFootStepNodesList_),
   m_comPredictParamIn_("comPredictParamIn", m_comPredictParam_),
+  m_octomapIn_("octomapIn", m_octomap_),
   m_footStepNodesListOut_("footStepNodesListOut", m_footStepNodesList_)
 {
 }
@@ -16,10 +58,11 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
   addInPort("qIn", this->m_qIn_);
   addInPort("basePosIn", this->m_basePosIn_);
   addInPort("baseRpyIn", this->m_baseRpyIn_);
-  addInPort("steppableRegionIn", m_steppableRegionIn_);
-  addInPort("refFootStepNodesListIn", m_refFootStepNodesListIn_);
-  addInPort("comPredictParamIn", m_comPredictParamIn_);
-  addOutPort("footStepNodesListOut", m_footStepNodesListOut_);
+  addInPort("steppableRegionIn", this->m_steppableRegionIn_);
+  addInPort("refFootStepNodesListIn", this->m_refFootStepNodesListIn_);
+  addInPort("comPredictParamIn", this->m_comPredictParamIn_);
+  addInPort("octomapIn", this->m_octomapIn_);
+  addOutPort("footStepNodesListOut", this->m_footStepNodesListOut_);
 
   // load robot model
   cnoid::BodyLoader bodyLoader;
@@ -124,6 +167,75 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
     }
   }
 
+  // env collision mesh
+  {
+    // get link vertices
+    float resolution = 0.01;
+    for(int i=0;i<robot_->numLinks();i++){
+      cnoid::LinkPtr link = robot_->link(i);
+      std::vector<cnoid::Vector3f> vertices; // 同じvertexが2回カウントされている TODO
+      cnoid::SgMeshPtr mesh = convertToSgMesh(link->collisionShape());
+      if(mesh) {
+	mesh->updateBoundingBox();
+	cnoid::BoundingBoxf bbx = mesh->boundingBox();
+	cnoid::Vector3f bbxSize = bbx.max() - bbx.min();
+	std::vector<std::vector<std::vector<bool> > > bin(int(bbxSize[0]/resolution)+1,
+							  std::vector<std::vector<bool> >(int(bbxSize[1]/resolution)+1,
+											  std::vector<bool>(int(bbxSize[2]/resolution)+1,
+													    false)));
+
+	for(int j=0;j<mesh->numTriangles();j++){
+	  cnoid::Vector3f v0 = mesh->vertices()->at(mesh->triangle(j)[0]);
+	  cnoid::Vector3f v1 = mesh->vertices()->at(mesh->triangle(j)[1]);
+	  cnoid::Vector3f v2 = mesh->vertices()->at(mesh->triangle(j)[2]);
+	  float l1 = (v1 - v0).norm();
+	  float l2 = (v2 - v0).norm();
+	  cnoid::Vector3f n1 = (v1 - v0).normalized();
+	  cnoid::Vector3f n2 = (v2 - v0).normalized();
+	  for(double m=0;m<l1;m+=resolution){
+	    for(double n=0;n<l2-l2/l1*m;n+=resolution){
+	      cnoid::Vector3f v = v0 + n1 * m + n2 * n;
+	      int x = int((v[0] - bbx.min()[0])/resolution);
+	      int y = int((v[1] - bbx.min()[1])/resolution);
+	      int z = int((v[2] - bbx.min()[2])/resolution);
+	      if(!bin[x][y][z]){
+		bin[x][y][z] = true;
+		vertices.push_back(v);
+	      }
+	    }
+	    double n=l2-l2/l1*m;
+	    cnoid::Vector3f v = v0 + n1 * m + n2 * n;
+	    int x = int((v[0] - bbx.min()[0])/resolution);
+	    int y = int((v[1] - bbx.min()[1])/resolution);
+	    int z = int((v[2] - bbx.min()[2])/resolution);
+	    if(!bin[x][y][z]){
+	      bin[x][y][z] = true;
+	      vertices.push_back(v);
+	    }
+	  }
+	  double m = l1;
+	  double n= 0;
+	  cnoid::Vector3f v = v0 + n1 * m + n2 * n;
+	  int x = int((v[0] - bbx.min()[0])/resolution);
+	  int y = int((v[1] - bbx.min()[1])/resolution);
+	  int z = int((v[2] - bbx.min()[2])/resolution);
+	  if(!bin[x][y][z]){
+	    bin[x][y][z] = true;
+	    vertices.push_back(v);
+	  }
+	}
+      }
+      verticesMap_[link] = vertices;
+    }
+
+    for(int i=0;i<robot_->numLinks();i++){
+      cnoid::LinkPtr link = robot_->link(i);
+      if(verticesMap_[link].size() == 0) continue;
+      targetLinks_.push_back(link);
+    }
+
+  }
+
   this->iksolver_.init(this->robot_, this->gaitParam_, this->collisionPairs_);
   
   return RTC::RTC_OK;
@@ -202,6 +314,31 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       gaitParam_.l[1] = m_comPredictParam_.l.y;
       gaitParam_.l[2] = m_comPredictParam_.l.z;
       gaitParam_.dt = m_comPredictParam_.dt;
+    }
+
+    /*    if (this->thread_done_ && this->thread_){
+      this->thread_->join();
+      this->thread_ = nullptr;
+      }*/
+    if (this->m_octomapIn_.isNew()) {
+      this->m_octomapIn_.read();
+      std::shared_ptr<octomap_msgs::Octomap> octomap = std::make_shared<octomap_msgs::Octomap>();
+      octomap->binary = this->m_octomap_.data.octomap.binary;
+      octomap->id = this->m_octomap_.data.octomap.id;
+      octomap->resolution = this->m_octomap_.data.octomap.resolution;
+      octomap->data.resize(this->m_octomap_.data.octomap.data.length());
+      for(int i=0;i<octomap->data.size();i++) {
+	octomap->data[i] = this->m_octomap_.data.octomap.data[i];
+      }
+      cnoid::Position fieldOrigin;
+      fieldOrigin.translation()[0] = this->m_octomap_.data.origin.position.x;
+      fieldOrigin.translation()[1] = this->m_octomap_.data.origin.position.y;
+      fieldOrigin.translation()[2] = this->m_octomap_.data.origin.position.z;
+      fieldOrigin.linear() = cnoid::rotFromRpy(this->m_octomap_.data.origin.orientation.r,this->m_octomap_.data.origin.orientation.p,this->m_octomap_.data.origin.orientation.y);
+      /*if ( !this->thread_) {
+	this->thread_done_ = false;
+	this->thread_ = std::make_shared<std::thread>(&OctomapCollisionChecker::octomapCallback, this, octomap, fieldOrigin);
+	}*/
     }
   } // read port
 

@@ -9,10 +9,12 @@
 #include <cnoid/EigenTypes>
 #include <cnoid/TimeMeasure>
 #include <cnoid/Body>
-#include <cnoid/BodyLoader>
 #include <choreonoid_qhull/choreonoid_qhull.h>
 #include <choreonoid_vclip/choreonoid_vclip.h>
+#include <moveit/distance_field/propagation_distance_field.h>
 #include "auto_stabilizer_msgs/idl/AutoStabilizer.hh"
+#include "octomap_msgs_rtmros_bridge/idl/Octomap.hh"
+#include <octomap_msgs/Octomap.h>
 #include "GaitParam.h"
 #include "AvoidancePlanner.h"
 #include "ComCoordsGenerator.h"
@@ -34,6 +36,8 @@ protected:
   RTC::InPort <auto_stabilizer_msgs::TimedFootStepNodesList> m_refFootStepNodesListIn_;
   auto_stabilizer_msgs::ComPredictParam m_comPredictParam_;
   RTC::InPort<auto_stabilizer_msgs::ComPredictParam> m_comPredictParamIn_;
+  octomap_msgs_rtmros_bridge::TimedOctomapWithPose m_octomap_;
+  RTC::InPort<octomap_msgs_rtmros_bridge::TimedOctomapWithPose> m_octomapIn_;
 
   auto_stabilizer_msgs::TimedFootStepNodesList m_footStepNodesList_;
   RTC::OutPort <auto_stabilizer_msgs::TimedFootStepNodesList> m_footStepNodesListOut_;
@@ -51,9 +55,12 @@ public:
 
 private:
   cnoid::BodyPtr robot_;
+  
   std::unordered_map<cnoid::LinkPtr, std::shared_ptr<Vclip::Polyhedron> > vclipModelMap_;
   std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > collisionPairs_;
-  
+
+  std::vector<cnoid::LinkPtr> targetLinks_;
+  std::unordered_map<cnoid::LinkPtr, std::vector<cnoid::Vector3f> > verticesMap_;
 };
 
 extern "C"
