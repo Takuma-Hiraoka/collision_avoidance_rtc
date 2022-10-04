@@ -1,12 +1,13 @@
 #include "AvoidancePlanner.h"
 
+bool AvoidancePlanner::checkPlanExecute(const std::vector<GaitParam::FootStepNodes> footstepNodesList) const{
+  return footstepNodesList.size() > 1 && // 静止状態ではない
+    (footstepNodesList[1].isSupportPhase[RLEG] && footstepNodesList[1].isSupportPhase[LLEG]) && // 着地している
+    ((footstepNodesList[0].isSupportPhase[RLEG] && !footstepNodesList[0].isSupportPhase[LLEG]) || (!footstepNodesList[0].isSupportPhase[RLEG] && footstepNodesList[0].isSupportPhase[LLEG])); // 現在片足支持期で、次が両足支持期である
+  // TODO 現在両足支持機で、次が片足支持期のときのみにしたほうが、急激なfootstepの変化や時間的余裕があってよい？
+}
+
 void AvoidancePlanner::calcSafeHulls(const std::vector<GaitParam::FootStepNodes> footStepNodesList, const std::vector<std::vector<cnoid::Vector2> > steppable_region, const std::vector<double> steppable_height, std::vector<std::vector<cnoid::Vector3>>& o_steppableHulls, std::vector<double>& o_steppableHeights, std::vector<std::vector<cnoid::Vector3>>& o_safeHulls) const{
-  // 現在片足支持期で、次が両足支持期であるときのみ、行う
-  // 現在両足支持機で、次が片足支持期のときのみにしたほうが、急激なfootstepの変化や時間的余裕があってよい？
-  if(!(footStepNodesList.size() > 1 &&
-       (footStepNodesList[1].isSupportPhase[RLEG] && footStepNodesList[1].isSupportPhase[LLEG]) &&
-       ((footStepNodesList[0].isSupportPhase[RLEG] && !footStepNodesList[0].isSupportPhase[LLEG]) || (!footStepNodesList[0].isSupportPhase[RLEG] && footStepNodesList[0].isSupportPhase[LLEG]))))
-     return;
 
   int swingLeg = footStepNodesList[0].isSupportPhase[RLEG] ? LLEG : RLEG;
   int supportLeg = (swingLeg == RLEG) ? LLEG : RLEG;
@@ -56,11 +57,6 @@ void AvoidancePlanner::calcSafeHulls(const std::vector<GaitParam::FootStepNodes>
 };
 
 void AvoidancePlanner::updateSafeFootStep(std::vector<GaitParam::FootStepNodes>& footStepNodesList, const std::vector<std::vector<cnoid::Vector3> > steppableHulls, const std::vector<double> steppableHeights, const std::vector<std::vector<cnoid::Vector3>> safeHulls) const {
-  // 現在片足支持期で、次が両足支持期であるときのみ、行う
-  if(!(footStepNodesList.size() > 1 &&
-       (footStepNodesList[1].isSupportPhase[RLEG] && footStepNodesList[1].isSupportPhase[LLEG]) &&
-       ((footStepNodesList[0].isSupportPhase[RLEG] && !footStepNodesList[0].isSupportPhase[LLEG]) || (!footStepNodesList[0].isSupportPhase[RLEG] && footStepNodesList[0].isSupportPhase[LLEG]))))
-     return;
 
   if(safeHulls.size() == 0) return;
 
