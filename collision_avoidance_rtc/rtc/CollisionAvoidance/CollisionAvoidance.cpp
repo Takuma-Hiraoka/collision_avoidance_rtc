@@ -354,17 +354,16 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       comCoordsGenerator_.calcZmpTrajectory(gaitParam_, gaitParam_.refZmpTraj);
       comCoordsGenerator_.calcComCoords(gaitParam_, gaitParam_.tgtCog);
       
-      std::cerr << std::endl;
       for(int j=0;j<NUM_LEGS;j++) {
 	gaitParam_.eeTargetPose[j] = gaitParam_.footstepNodesList[0].dstCoords[j];
       }
       std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > nan; // はじめは干渉を考えない
-      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, nan, robot_);
+      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, nan, robot_, 1);
       if(this->field_){
 	collisionChecker_.checkEnvCollision(this->field_, this->fieldOrigin_, this->targetLinks_, this->verticesMap_, this->envCollisionPairs_);
       }
       collisionChecker_.checkSelfCollision(this->selfCollisionPairs_, this->vclipModelMap_);
-      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_);
+      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_, 3);
     }
 
      std::cerr << "execution time : " << timer.measure() << std::endl;
