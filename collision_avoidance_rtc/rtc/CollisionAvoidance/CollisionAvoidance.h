@@ -58,6 +58,8 @@ public:
   PrioritizedIKSolver iksolver_;
   CollisionChecker collisionChecker_;
 
+  double iter_time = 3;
+
 private:
   cnoid::BodyPtr robot_;
   

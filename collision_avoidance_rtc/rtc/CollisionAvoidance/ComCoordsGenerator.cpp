@@ -73,8 +73,11 @@ void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3
     cnoid::Vector3 next_dc = cnoid::Vector3(0,0,0);
     double dt = gaitParam.dt;
 
-    for (int i=0;(i<gaitParam.refZmpTraj.size()) && (i<2);i++) {
-      predict_time += gaitParam.refZmpTraj[i].getTime() / (i+1); //TODO 正確な時間
+    cnoid::Vector3 max_c;
+    double max_distance = 0.0;
+
+    for (int i=0;(i<gaitParam.refZmpTraj.size()) && (i<3);i++) {
+      predict_time += gaitParam.refZmpTraj[i].getTime(); //TODO 正確な時間
     }
     double start_time = 0.0;
     int traj_index = 0;
@@ -94,7 +97,12 @@ void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3
       c = next_c;
       dc = next_dc;
 
+      // 最も離れたときの重心
+      if((gaitParam.genCog - c).norm() > max_distance){
+	max_distance = (gaitParam.genCog - c).norm();
+	max_c = c;
+      }
     }
-    o_tgtCog = c;
+    o_tgtCog = max_c;
   }
 }

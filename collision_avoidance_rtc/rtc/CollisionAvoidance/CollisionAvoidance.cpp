@@ -347,28 +347,31 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
     // 着地可能な領域を計算
     avoidancePlanner_.calcSafeHulls(gaitParam_.footstepNodesList, gaitParam_.steppable_region, gaitParam_.steppable_height, avoidancePlanner_.steppableHulls, avoidancePlanner_.steppableHeights, avoidancePlanner_.safeHulls);
 
-    // footstepを着地可能な領域になおす
-    avoidancePlanner_.updateSafeFootStep(gaitParam_.footstepNodesList, avoidancePlanner_.steppableHulls, avoidancePlanner_.steppableHeights, avoidancePlanner_.safeHulls);
+    for (int i=0;i<this->iter_time;i++){
+      // footstepを着地可能な領域になおす
+      avoidancePlanner_.updateSafeFootStep(gaitParam_.footstepNodesList, avoidancePlanner_.steppableHulls, avoidancePlanner_.steppableHeights, avoidancePlanner_.safeHulls);
 
-    comCoordsGenerator_.calcZmpTrajectory(gaitParam_, gaitParam_.refZmpTraj);
-    comCoordsGenerator_.calcComCoords(gaitParam_, gaitParam_.tgtCog);
+      comCoordsGenerator_.calcZmpTrajectory(gaitParam_, gaitParam_.refZmpTraj);
+      comCoordsGenerator_.calcComCoords(gaitParam_, gaitParam_.tgtCog);
+      
+      std::cerr << std::endl;
+      for(int j=0;j<NUM_LEGS;j++) {
+	gaitParam_.eeTargetPose[j] = gaitParam_.footstepNodesList[0].dstCoords[j];
+      }
+      std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > nan; // はじめは干渉を考えない
+      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, nan, robot_);
+      if(this->field_){
+	collisionChecker_.checkEnvCollision(this->field_, this->fieldOrigin_, this->targetLinks_, this->verticesMap_, this->envCollisionPairs_);
+      }
+      collisionChecker_.checkSelfCollision(this->selfCollisionPairs_, this->vclipModelMap_);
+      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_);
+    }
 
-    for(int i=0;i<NUM_LEGS;i++) {
-      gaitParam_.eeTargetPose[i] = gaitParam_.footstepNodesList[0].dstCoords[i];
-    }
-    std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > nan; // はじめは干渉を考えない
-    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, nan, robot_);
-    if(this->field_){
-      collisionChecker_.checkEnvCollision(this->field_, this->fieldOrigin_, this->targetLinks_, this->verticesMap_, this->envCollisionPairs_);
-    }
-    collisionChecker_.checkSelfCollision(this->selfCollisionPairs_, this->vclipModelMap_);
-    iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_);
-
-    // std::cerr << "execution time : " << timer.measure() << std::endl;
-    std::cerr << "out joint angle :";
-    for ( int i = 0; i < this->robot_->numJoints(); i++ ){
-      std::cerr << " " << this->robot_->joint(i)->q() * 180 / M_PI; // for euslisp debug
-    }
+     std::cerr << "execution time : " << timer.measure() << std::endl;
+     std::cerr << "out joint angle :";
+     for ( int i = 0; i < this->robot_->numJoints(); i++ ){
+       std::cerr << " " << this->robot_->joint(i)->q() * 180 / M_PI; // for euslisp debug
+     }
     std::cerr << std::endl;
   }
   
