@@ -57,7 +57,6 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     this->ikEEPositionConstraint[i]->maxError() << 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt;
     this->ikEEPositionConstraint[i]->precision() << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
     if(i<NUM_LEGS) this->ikEEPositionConstraint[i]->weight() << 10.0, 10.0, 10.0, 10.0, 10.0, 10.0;
-    else this->ikEEPositionConstraint[i]->weight() << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
     this->ikEEPositionConstraint[i]->eval_link() = nullptr;
     this->ikEEPositionConstraint[i]->eval_localR() = this->ikEEPositionConstraint[i]->B_localpos().linear();
     ikConstraint1.push_back(this->ikEEPositionConstraint[i]);
@@ -75,6 +74,22 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     this->comConstraint->eval_R() = cnoid::Matrix3::Identity();
     ikConstraint1.push_back(this->comConstraint);
   }
+
+  // root
+  {
+    this->rootPositionConstraint->A_link() = robot->rootLink();
+    this->rootPositionConstraint->A_localpos() = cnoid::Position::Identity();
+    this->rootPositionConstraint->B_link() = nullptr;
+    this->rootPositionConstraint->B_localpos() = robot->rootLink()->T(); //rootは大きく動いてほしくない
+    this->rootPositionConstraint->maxError() << 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt;
+    this->rootPositionConstraint->precision() << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0; // 強制的にIKをmax loopまで回す
+    this->rootPositionConstraint->weight() << 1.0, 1.0, 1.0, 10.0, 10.0, 0.0; // 角運動量を利用するときは重みを小さく. 通常時、胴の質量・イナーシャやマスパラ誤差の大きさや、胴を大きく動かすための出力不足などによって、二足動歩行では胴の傾きの自由度を使わない方がよい
+    //this->rootPositionConstraint->weight() << 0.0, 0.0, 0.0, 3e-1, 3e-1, 3e-1;
+    this->rootPositionConstraint->eval_link() = nullptr;
+    this->rootPositionConstraint->eval_localR() = cnoid::Matrix3::Identity();
+    ikConstraint2.push_back(this->rootPositionConstraint);
+  }
+
 
   // reference angle
   {

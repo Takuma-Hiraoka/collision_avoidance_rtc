@@ -18,6 +18,7 @@ public:
   mutable std::vector<std::shared_ptr<IK::ClientCollisionConstraint> > envCollisionConstraint;
   mutable std::vector<std::shared_ptr<IK::JointLimitConstraint> > jointLimitConstraint;
   mutable std::vector<std::shared_ptr<IK::JointAngleConstraint> > refJointAngleConstraint; // 要素数と順序はrobot->numJoints()と同じ
+  mutable std::shared_ptr<IK::PositionConstraint> rootPositionConstraint = std::make_shared<IK::PositionConstraint>();
 protected:
   mutable std::vector<std::shared_ptr<prioritized_qp_base::Task> > tasks;
 public:
