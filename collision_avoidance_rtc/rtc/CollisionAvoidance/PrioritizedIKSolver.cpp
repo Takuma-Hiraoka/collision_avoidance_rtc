@@ -4,6 +4,7 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
 
   std::vector<std::shared_ptr<IK::IKConstraint> > ikConstraint0;
   std::vector<std::shared_ptr<IK::IKConstraint> > ikConstraint1;
+  std::vector<std::shared_ptr<IK::IKConstraint> > ikConstraint2;
 
   // self collision
   for(int i=0;i<selfCollisionPairs.size();i++){
@@ -75,12 +76,25 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     ikConstraint1.push_back(this->comConstraint);
   }
 
+  // reference angle
+  {
+    for(size_t i=0;i<robot->numJoints();i++){
+      this->refJointAngleConstraint[i]->joint() = robot->joint(i);
+      this->refJointAngleConstraint[i]->maxError() = 10.0 * dt; // 高優先度のmaxError以下にしないと優先度逆転するおそれ
+      this->refJointAngleConstraint[i]->weight() = 1e-1; // 小さい値すぎると、qp終了判定のtoleranceによって無視されてしまう
+      this->refJointAngleConstraint[i]->targetq() = gaitParam.orgRobot->joint(i)->q();
+      this->refJointAngleConstraint[i]->precision() = 0.0; // 強制的にIKをmax loopまで回す
+      ikConstraint2.push_back(this->refJointAngleConstraint[i]);
+    }
+  }
+
+
   std::vector<cnoid::LinkPtr> variables;
   variables.push_back(robot->rootLink());
   for(size_t i=0;i<robot->numJoints();i++){
     variables.push_back(robot->joint(i));
   }
-  std::vector<std::vector<std::shared_ptr<IK::IKConstraint> > > constraints{ikConstraint0,ikConstraint1};
+  std::vector<std::vector<std::shared_ptr<IK::IKConstraint> > > constraints{ikConstraint0,ikConstraint1,ikConstraint2};
   for(size_t i=0;i<constraints.size();i++){
     for(size_t j=0;j<constraints[i].size();j++){
       constraints[i][j]->debuglevel() = 0;//debug

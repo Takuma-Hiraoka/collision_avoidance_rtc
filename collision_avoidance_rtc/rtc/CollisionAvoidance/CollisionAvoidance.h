@@ -5,6 +5,7 @@
 #include <rtm/DataFlowComponentBase.h>
 #include <rtm/DataOutPort.h>
 #include <rtm/DataInPort.h>
+#include <rtm/CorbaPort.h>
 
 #include <thread>
 #include <mutex>
@@ -14,6 +15,7 @@
 #include <choreonoid_qhull/choreonoid_qhull.h>
 #include <choreonoid_vclip/choreonoid_vclip.h>
 #include <moveit/distance_field/propagation_distance_field.h>
+#include <hrpsys/idl/SequencePlayerService.hh>
 #include <auto_stabilizer_msgs/idl/AutoStabilizer.hh>
 #include <octomap_msgs_rtmros_bridge/idl/Octomap.hh>
 #include <moveit/distance_field/propagation_distance_field.h>
@@ -44,6 +46,9 @@ protected:
 
   auto_stabilizer_msgs::TimedFootStepNodesList m_footStepNodesList_;
   RTC::OutPort <auto_stabilizer_msgs::TimedFootStepNodesList> m_footStepNodesListOut_;
+
+  RTC::CorbaConsumer<OpenHRP::SequencePlayerService> m_sequencePlayerService0_;
+  RTC::CorbaPort m_SequencePlayerServicePort_;
 
 public:
   CollisionAvoidance(RTC::Manager* manager);

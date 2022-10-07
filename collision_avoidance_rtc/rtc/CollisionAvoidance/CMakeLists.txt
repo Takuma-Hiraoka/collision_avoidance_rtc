@@ -38,6 +38,7 @@ rtmbuild_add_library(CollisionAvoidance SHARED
 target_link_libraries(CollisionAvoidance
   ${catkin_LIBRARIES}
   ${CHOREONOID_BODY_LIBRARIES_ABS}
+  SequencePlayerServiceSkel SequencePlayerServiceStub
   )
 set_target_properties(CollisionAvoidance PROPERTIES PREFIX "") # libCollisionAvoidance.so -> CollisionAvoidance.so                                                                           
 add_dependencies(CollisionAvoidance RTMBUILD_${PROJECT_NAME}_genrpc) # wait for rtmbuild_genidl                                                                                                        

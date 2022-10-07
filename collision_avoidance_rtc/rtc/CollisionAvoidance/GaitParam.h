@@ -3,6 +3,7 @@
 
 #include <cnoid/EigenTypes>
 #include <cnoid/EigenUtil>
+#include <cnoid/Body>
 #include <vector>
 #include "FootGuidedController.h"
 
@@ -37,6 +38,7 @@ public:
   std::vector<std::string> eeParentLink; // constant. 要素数と順序はeeNameと同じ. 必ずrobot->link(parentLink)がnullptrではないことを約束する. そのため、毎回robot->link(parentLink)がnullptrかをチェックしなくても良い
   std::vector<cnoid::Position> eeLocalT; // constant. 要素数と順序はeeNameと同じ. Parent Link Frame
   std::vector<cnoid::Position> eeTargetPose; // 要素数と順序はeeNameと同じ.generate frame.
+  cnoid::BodyPtr orgRobot;
 
   void push_backEE(const std::string& name_, const std::string& parentLink_, const cnoid::Position& localT_){
     eeName.push_back(name_);

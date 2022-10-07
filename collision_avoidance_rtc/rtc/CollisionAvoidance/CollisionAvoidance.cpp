@@ -51,7 +51,8 @@ CollisionAvoidance::CollisionAvoidance(RTC::Manager* manager):
   m_refFootStepNodesListIn_("refFootStepNodesListIn", m_refFootStepNodesList_),
   m_comPredictParamIn_("comPredictParamIn", m_comPredictParam_),
   m_octomapIn_("octomapIn", m_octomap_),
-  m_footStepNodesListOut_("footStepNodesListOut", m_footStepNodesList_)
+  m_footStepNodesListOut_("footStepNodesListOut", m_footStepNodesList_),
+  m_SequencePlayerServicePort_("SequencePlayerService")
 {
 }
 
@@ -64,6 +65,8 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
   addInPort("comPredictParamIn", this->m_comPredictParamIn_);
   addInPort("octomapIn", this->m_octomapIn_);
   addOutPort("footStepNodesListOut", this->m_footStepNodesListOut_);
+  this->m_SequencePlayerServicePort_.registerConsumer("service0", "SequencePlayerService", this->m_sequencePlayerService0_);
+  addPort(m_SequencePlayerServicePort_);
 
   // load robot model
   cnoid::BodyLoader bodyLoader;
@@ -238,6 +241,7 @@ RTC::ReturnCode_t CollisionAvoidance::onInitialize(){
   }
 
   this->iksolver_.init(this->robot_, this->gaitParam_, this->selfCollisionPairs_);
+  gaitParam_.orgRobot = this->robot_;
   
   return RTC::RTC_OK;
 }
@@ -257,6 +261,7 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
     if(this->m_q_.data.length() == this->robot_->numJoints()){
       for ( int i = 0; i < this->robot_->numJoints(); i++ ){
 	this->robot_->joint(i)->q() = this->m_q_.data[i];
+	gaitParam_.orgRobot->joint(i)->q() = this->m_q_.data[i];
       }
     }
     this->robot_->rootLink()->p()[0] = m_basePos_.data.x;
@@ -399,6 +404,18 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       }
     }
     this->m_footStepNodesListOut_.write();
+
+    if (avoidancePlanner_.checkPlanExecute(gaitParam_.footstepNodesList)){    
+      if(!CORBA::is_nil(this->m_sequencePlayerService0_._ptr()) && //コンシューマにプロバイダのオブジェクト参照がセットされていない(接続されていない)状態
+	 !this->m_sequencePlayerService0_->_non_existent()){ //プロバイダのオブジェクト参照は割り当てられているが、相手のオブジェクトが非活性化 (RTC は Inactive 状態) になっている状態
+	OpenHRP::dSequence angles;
+	angles.length(this->robot_->numJoints());
+	for ( int i = 0; i < this->robot_->numJoints(); i++ ){
+	  angles[i] = this->robot_->joint(i)->q(); 
+	}
+	this->m_sequencePlayerService0_->setJointAngles(angles, gaitParam_.footstepNodesList[0].remainTime);
+      }
+    }
   } // write port
   
   return RTC::RTC_OK;
