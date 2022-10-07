@@ -269,6 +269,12 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
     this->robot_->rootLink()->p()[2] = m_basePos_.data.z;
     this->robot_->rootLink()->R() = cnoid::rotFromRpy(m_baseRpy_.data.r, m_baseRpy_.data.p, m_baseRpy_.data.y);
     this->robot_->calcForwardKinematics();
+
+    gaitParam_.orgRobot->rootLink()->p()[0] = m_basePos_.data.x;
+    gaitParam_.orgRobot->rootLink()->p()[1] = m_basePos_.data.y;
+    gaitParam_.orgRobot->rootLink()->p()[2] = m_basePos_.data.z;
+    gaitParam_.orgRobot->rootLink()->R() = cnoid::rotFromRpy(m_baseRpy_.data.r, m_baseRpy_.data.p, m_baseRpy_.data.y);
+
   
     if(this->m_steppableRegionIn_.isNew()){
       m_steppableRegionIn_.read();
@@ -372,6 +378,7 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
 	iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, nan, robot_, 1);
       }
       if(this->field_){
+	this->robot_->calcForwardKinematics();
 	collisionChecker_.checkEnvCollision(this->field_, this->fieldOrigin_, this->targetLinks_, this->verticesMap_, this->envCollisionPairs_);
       }
       collisionChecker_.checkSelfCollision(this->selfCollisionPairs_, this->vclipModelMap_);
