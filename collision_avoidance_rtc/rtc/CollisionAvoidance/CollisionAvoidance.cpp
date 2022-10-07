@@ -343,6 +343,7 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
     }
   } // read port
 
+  bool init_flag = false;
   if (avoidancePlanner_.checkPlanExecute(gaitParam_.footstepNodesList)){    
     // 着地可能な領域を計算
     avoidancePlanner_.calcSafeHulls(gaitParam_.footstepNodesList, gaitParam_.steppable_region, gaitParam_.steppable_height, avoidancePlanner_.steppableHulls, avoidancePlanner_.steppableHeights, avoidancePlanner_.safeHulls);
@@ -357,13 +358,19 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       for(int j=0;j<NUM_LEGS;j++) {
 	gaitParam_.eeTargetPose[j] = gaitParam_.footstepNodesList[0].dstCoords[j];
       }
-      std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > nan; // はじめは干渉を考えない
-      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, nan, robot_, 1);
+      if(!init_flag){
+	init_flag = true;
+	// ただ逆運動学を解くだけでは重心移動分を腕などによって補償してしまうが、実際は腰が十分動いているため正確な予測にはならない。このためとりあえず重心移動分ルートリンクを移動させる。
+	this->robot_->rootLink()->p() += gaitParam_.tgtCog - gaitParam_.genCog;
+	this->robot_->calcForwardKinematics();
+	std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > nan; // はじめは干渉を考えない
+	iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, nan, nan, robot_, 1);
+      }
       if(this->field_){
 	collisionChecker_.checkEnvCollision(this->field_, this->fieldOrigin_, this->targetLinks_, this->verticesMap_, this->envCollisionPairs_);
       }
       collisionChecker_.checkSelfCollision(this->selfCollisionPairs_, this->vclipModelMap_);
-      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_, 3);
+      iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_, 2);
     }
 
      std::cerr << "execution time : " << timer.measure() << std::endl;

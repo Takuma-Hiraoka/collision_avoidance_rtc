@@ -24,15 +24,16 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
   for (int i=0;i<envCollisionPairs.size();i++) this->envCollisionConstraint.push_back(std::make_shared<IK::ClientCollisionConstraint>());
   // env collision
   for(int i=0;i<envCollisionPairs.size();i++){
+    if ((envCollisionPairs[i]->link1->name() == "RLEG_JOINT5" )|| (envCollisionPairs[i]->link1->name() == "LLEG_JOINT5" ) || (envCollisionPairs[i]->link1->name() == "RLEG_JOINT4" )|| (envCollisionPairs[i]->link1->name() == "LLEG_JOINT4" )) continue; // 足裏と脛の干渉は無視する
     this->envCollisionConstraint[i]->A_link() = robot->link(envCollisionPairs[i]->link1->name().c_str());
     this->envCollisionConstraint[i]->A_localp() = envCollisionPairs[i]->localp1;
     this->envCollisionConstraint[i]->B_link() = nullptr;
     this->envCollisionConstraint[i]->B_localp() = envCollisionPairs[i]->localp2;
     this->envCollisionConstraint[i]->tolerance() = 0.04; //TODO
-    this->envCollisionConstraint[i]->maxError() = 10.0*gaitParam.footstepNodesList[0].remainTime;
+    this->envCollisionConstraint[i]->maxError() = 10.0*dt;
     this->envCollisionConstraint[i]->precision() = 0.0;
-    this->envCollisionConstraint[i]->weight() = 3.0; // ここが2か3かで大きく変わる
-    this->envCollisionConstraint[i]->velocityDamper() = 0.1 / gaitParam.footstepNodesList[0].remainTime;
+    this->envCollisionConstraint[i]->weight() = 3.0;
+    this->envCollisionConstraint[i]->velocityDamper() = 0.5 / gaitParam.footstepNodesList[0].remainTime;
     this->envCollisionConstraint[i]->direction() = envCollisionPairs[i]->direction21;
     ikConstraint0.push_back(this->envCollisionConstraint[i]);
   }
