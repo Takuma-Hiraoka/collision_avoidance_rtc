@@ -274,7 +274,6 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
     gaitParam_.orgRobot->rootLink()->p()[1] = m_basePos_.data.y;
     gaitParam_.orgRobot->rootLink()->p()[2] = m_basePos_.data.z;
     gaitParam_.orgRobot->rootLink()->R() = cnoid::rotFromRpy(m_baseRpy_.data.r, m_baseRpy_.data.p, m_baseRpy_.data.y);
-    std::cerr << "act rpy r : " << m_baseRpy_.data.r << " p : " << m_baseRpy_.data.p << " y : " << m_baseRpy_.data.y << std::endl;
   
     if(this->m_steppableRegionIn_.isNew()){
       m_steppableRegionIn_.read();
@@ -384,6 +383,8 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       collisionChecker_.checkSelfCollision(this->selfCollisionPairs_, this->vclipModelMap_);
       iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_, 2);
     }
+
+    avoidancePlanner_.calcAngleTrajectory(robot_, gaitParam_.orgRobot, gaitParam_.footstepNodesList[0].remainTime, gaitParam_.dt, collisionChecker_, this->selfCollisionPairs_, this->vclipModelMap_, this->field_, this->fieldOrigin_, this->targetLinks_, this->verticesMap_, avoidancePlanner_.angleTrajectory);
 
      std::cerr << "execution time : " << timer.measure() << std::endl;
      std::cerr << "out joint angle :";
