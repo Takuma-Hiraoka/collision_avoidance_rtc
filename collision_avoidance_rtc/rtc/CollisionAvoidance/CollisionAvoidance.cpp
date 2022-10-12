@@ -384,11 +384,6 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       collisionChecker_.checkSelfCollision(this->selfCollisionPairs_, this->vclipModelMap_);
       iksolver_.solveFullBodyIK(gaitParam_.dt, gaitParam_, this->selfCollisionPairs_, this->envCollisionPairs_, robot_, 2);
     }
-    std::cerr << "diff joint angle :";
-    for ( int i = 0; i < this->robot_->numJoints(); i++ ){
-      std::cerr << " " << (this->robot_->joint(i)->q() - this->m_q_.data[i]) * 180 / M_PI; // for euslisp debug
-    }
-    std::cerr << std::endl;
 
      std::cerr << "execution time : " << timer.measure() << std::endl;
      std::cerr << "out joint angle :";
@@ -396,8 +391,6 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
        std::cerr << " " << this->robot_->joint(i)->q() * 180 / M_PI; // for euslisp debug
      }
     std::cerr << std::endl;
-    cnoid::Vector3 rpy = cnoid::rpyFromRot(this->robot_->rootLink()->R());
-    std::cerr << "ref rpy r : " << rpy[0] << " p : " << rpy[1] << " y : " << rpy[2] << std::endl;
   }
   
   // write port
