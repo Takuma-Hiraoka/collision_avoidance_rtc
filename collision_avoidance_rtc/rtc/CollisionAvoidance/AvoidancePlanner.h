@@ -5,6 +5,7 @@
 #include "MathUtil.h"
 #include <iostream>
 #include "CollisionChecker.h"
+#include <cnoid/EigenUtil>
 
 class AvoidancePlanner{
 public:
@@ -13,7 +14,21 @@ public:
   std::vector<std::vector<cnoid::Vector3> > steppableHulls; // 要素数任意. generate frame. endCoordsが存在できる領域
   std::vector<double> steppableHeights; // 要素数はsteppable_regionと同じ. generate frame. 各polygonごとのおおよその値.
   std::vector<std::vector<cnoid::Vector3>> safeHulls; // 要素数任意．generate frame．endCoordsが環境と干渉せず、かつ到達できる領域
-  std::vector<std::vector<double>> angleTrajectory; //SequencePlayerに送る関節角度軌道
+
+  class angleNode {
+  public:
+    double t;
+    u_int parent_id;
+    cnoid::VectorXd angles;
+    double start_distance;
+    double goal_distance;
+    angleNode(double t_, u_int parent_id_, cnoid::VectorXd angles_,double start_distance_, double goal_distance_)
+      :t(t_), parent_id(parent_id_), angles(angles_), start_distance(start_distance_), goal_distance(goal_distance_){}
+  };
+  std::vector<cnoid::VectorXd> angleTrajectory; //SequencePlayerに送る関節角度軌道
+  int legs_joint_num = 12;
+  int deps = 20; //細かさを決める．
+  double step_angle_diff = M_PI / deps;
 
   bool checkPlanExecute(const std::vector<GaitParam::FootStepNodes> footstepNodesList) const; // これがtrueのときのみ計画、結果を出力する．逆に計画時はここでの条件を前提として良い．
   
@@ -21,7 +36,7 @@ public:
 
   void updateSafeFootStep(std::vector<GaitParam::FootStepNodes>& footStepNodesList, const std::vector<std::vector<cnoid::Vector3> > o_steppableHulls, const std::vector<double> o_steppableHeights, const std::vector<std::vector<cnoid::Vector3>> o_safeHulls) const; // footStepNodesListの先頭をSafeHullに近づけるように修正
 
-  void calcAngleTrajectory(cnoid::BodyPtr& robot, const cnoid::BodyPtr& orgRobot, const double remainTime, const double dt, const CollisionChecker collisionChecker, std::vector<std::shared_ptr<CollisionChecker::CollisionPair>>& collisionPairs, std::unordered_map<cnoid::LinkPtr, std::shared_ptr<Vclip::Polyhedron> >& vclipModelMap, const std::shared_ptr<distance_field::PropagationDistanceField> field, const cnoid::Position fieldOrigin, const std::vector<cnoid::LinkPtr>& targetLinks, std::unordered_map<cnoid::LinkPtr, std::vector<cnoid::Vector3f> >& verticesMap, std::vector<std::vector<double>> o_angleTrajectory) const; // 現在姿勢から逆運動学で出された干渉しない姿勢まで、干渉せずに到達できる関節角度軌道を計算．現在位置から最も動いた姿勢でもぶつからなければ、それまでの間もぶつからないと仮定し、rootLinkは逆運動学時と同じ(=最も動いたとき)とする。
+  void calcAngleTrajectory(cnoid::BodyPtr& robot, const cnoid::BodyPtr& orgRobot, const double remainTime, const double dt, const CollisionChecker collisionChecker, std::vector<std::shared_ptr<CollisionChecker::CollisionPair>>& collisionPairs, std::unordered_map<cnoid::LinkPtr, std::shared_ptr<Vclip::Polyhedron> >& vclipModelMap, const std::shared_ptr<distance_field::PropagationDistanceField> field, const cnoid::Position fieldOrigin, const std::vector<cnoid::LinkPtr>& targetLinks, std::unordered_map<cnoid::LinkPtr, std::vector<cnoid::Vector3f> >& verticesMap, std::vector<cnoid::VectorXd> o_angleTrajectory) const; // 現在姿勢から逆運動学で出された干渉しない姿勢まで、干渉せずに到達できる関節角度軌道を計算．現在位置から最も動いた姿勢でもぶつからなければ、それまでの間もぶつからないと仮定し、rootLinkは逆運動学時と同じ(=最も動いたとき)とする。
 };
 
 #endif

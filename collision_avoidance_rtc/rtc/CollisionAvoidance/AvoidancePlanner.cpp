@@ -90,5 +90,40 @@ void AvoidancePlanner::updateSafeFootStep(std::vector<GaitParam::FootStepNodes>&
   footStepNodesList[0].dstCoords[swingLeg].translation() = nearestPoint;
 };
 
-void AvoidancePlanner::calcAngleTrajectory(cnoid::BodyPtr& robot, const cnoid::BodyPtr& orgRobot, const double remainTime, const double dt, const CollisionChecker collisionChecker, std::vector<std::shared_ptr<CollisionChecker::CollisionPair>>& collisionPairs, std::unordered_map<cnoid::LinkPtr, std::shared_ptr<Vclip::Polyhedron> >& vclipModelMap, const std::shared_ptr<distance_field::PropagationDistanceField> field, const cnoid::Position fieldOrigin, const std::vector<cnoid::LinkPtr>& targetLinks, std::unordered_map<cnoid::LinkPtr, std::vector<cnoid::Vector3f> >& verticesMap, std::vector<std::vector<double>> o_angleTrajectory) const{
+void AvoidancePlanner::calcAngleTrajectory(cnoid::BodyPtr& robot, const cnoid::BodyPtr& orgRobot, const double remainTime, const double dt, const CollisionChecker collisionChecker, std::vector<std::shared_ptr<CollisionChecker::CollisionPair>>& collisionPairs, std::unordered_map<cnoid::LinkPtr, std::shared_ptr<Vclip::Polyhedron> >& vclipModelMap, const std::shared_ptr<distance_field::PropagationDistanceField> field, const cnoid::Position fieldOrigin, const std::vector<cnoid::LinkPtr>& targetLinks, std::unordered_map<cnoid::LinkPtr, std::vector<cnoid::Vector3f> >& verticesMap, std::vector<cnoid::VectorXd> o_angleTrajectory) const{
+  
+  // collisionPairs等でrobotを使うので、目標関節角度保持のためコピー
+  cnoid::BodyPtr tgtRobot = robot;
+
+  // rootLinkの位置、姿勢を線形補間する。
+  cnoid::Vector3 rootTransDiff = (robot->rootLink()->p() - orgRobot->rootLink()->p()) / remainTime;
+  cnoid::Vector3 rootRpyDiff = cnoid::rpyFromRot(robot->rootLink()->R() - orgRobot->rootLink()->R()) / remainTime;
+
+  std::vector<AvoidancePlanner::angleNode> angleTree;
+
+  // 初期化
+  cnoid::VectorXd org_angles(orgRobot->numJoints());
+  for ( int i = 0; i < orgRobot->numJoints(); i++ ){
+    org_angles[i] = orgRobot->joint(i)->q();
+  }
+
+  // 目標
+  cnoid::VectorXd tgt_angles(tgtRobot->numJoints());
+  for ( int i = 0; i < tgtRobot->numJoints(); i++ ){
+    tgt_angles[i] = tgtRobot->joint(i)->q();
+  }
+
+  AvoidancePlanner::angleNode first(0,0,org_angles,0,(org_angles-tgt_angles).norm());
+  angleTree.push_back(first);
+
+  AvoidancePlanner::angleNode node = first;
+  while(true){
+    for(int i;i<robot->numJoint();i++){
+      if(i<this->legs_joint_num) continue; // 足は変更しない
+      for(int j=-1;j<2;j++){
+	// TODO 速度も考慮して適切に関節角度を変化させ、干渉計算し、実行可能なものをノードとして追加する．
+      }
+    }
+  }
+  
 };
