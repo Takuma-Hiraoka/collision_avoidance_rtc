@@ -89,3 +89,6 @@ void AvoidancePlanner::updateSafeFootStep(std::vector<GaitParam::FootStepNodes>&
   // TODO 高さ．どのsteppable_hullの中にあるかを調べて同じ位置のsteppable_heightにする．
   footStepNodesList[0].dstCoords[swingLeg].translation() = nearestPoint;
 };
+
+void AvoidancePlanner::calcAngleTrajectory(cnoid::BodyPtr& robot, const cnoid::BodyPtr& orgRobot, const double remainTime, const double dt, const CollisionChecker collisionChecker, std::vector<std::shared_ptr<CollisionChecker::CollisionPair>>& collisionPairs, std::unordered_map<cnoid::LinkPtr, std::shared_ptr<Vclip::Polyhedron> >& vclipModelMap, const std::shared_ptr<distance_field::PropagationDistanceField> field, const cnoid::Position fieldOrigin, const std::vector<cnoid::LinkPtr>& targetLinks, std::unordered_map<cnoid::LinkPtr, std::vector<cnoid::Vector3f> >& verticesMap, std::vector<std::vector<double>> o_angleTrajectory) const{
+};
