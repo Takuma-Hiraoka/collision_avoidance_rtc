@@ -13,6 +13,8 @@ public:
   std::vector<double> steppableHeights; // 要素数はsteppable_regionと同じ. generate frame. 各polygonごとのおおよその値.
   std::vector<std::vector<cnoid::Vector3>> safeHulls; // 要素数任意．generate frame．endCoordsが環境と干渉せず、かつ到達できる領域
 
+  double checkPlanTime = 0.6; // remainTimeがこの時間を上回るときのみ関節角度やfootstepを送る．
+
   bool checkPlanExecute(const std::vector<GaitParam::FootStepNodes> footstepNodesList) const; // これがtrueのときのみ計画、結果を出力する．逆に計画時はここでの条件を前提として良い．
   
   void calcSafeHulls(const std::vector<GaitParam::FootStepNodes> footStepNodesList, const std::vector<std::vector<cnoid::Vector2> > steppable_region, const std::vector<double> steppable_height, std::vector<std::vector<cnoid::Vector3>>& o_steppableHulls, std::vector<double>& o_steppableHeights, std::vector<std::vector<cnoid::Vector3>>& o_safeHulls) const; // footStepNodesListをもとにstridelimitatinoを満たしsteppableなregionを計算

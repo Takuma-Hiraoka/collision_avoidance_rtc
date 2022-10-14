@@ -250,7 +250,6 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
   std::cerr << "Collision Avoidance rtc onExecute" << std::endl;
   cnoid::TimeMeasure timer;
   timer.begin();
-  // TODO 本来はserviceにするべき？
 
   // read port
   {
@@ -274,7 +273,6 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
     gaitParam_.orgRobot->rootLink()->p()[1] = m_basePos_.data.y;
     gaitParam_.orgRobot->rootLink()->p()[2] = m_basePos_.data.z;
     gaitParam_.orgRobot->rootLink()->R() = cnoid::rotFromRpy(m_baseRpy_.data.r, m_baseRpy_.data.p, m_baseRpy_.data.y);
-    std::cerr << "act rpy r : " << m_baseRpy_.data.r << " p : " << m_baseRpy_.data.p << " y : " << m_baseRpy_.data.y << std::endl;
   
     if(this->m_steppableRegionIn_.isNew()){
       m_steppableRegionIn_.read();

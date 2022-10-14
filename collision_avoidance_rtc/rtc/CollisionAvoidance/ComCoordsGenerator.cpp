@@ -9,8 +9,7 @@ void ComCoordsGenerator::calcZmpTrajectory(const GaitParam gaitParam, std::vecto
     for(int i=0;i<gaitParam.footstepNodesList.size() && i < this->previewStepNum;i++){
 
       if(!gaitParam.footstepNodesList[i].isSupportPhase[RLEG] && !gaitParam.footstepNodesList[i].isSupportPhase[LLEG]){
-        // 跳躍についてはひとまず考えない TODO
-	// copOffsetもひとまず考えない TODO
+	// copOffsetはひとまず考えない TODO
       }else if(!gaitParam.footstepNodesList[i].isSupportPhase[RLEG] && gaitParam.footstepNodesList[i].isSupportPhase[LLEG]){// 右脚がswing. refzmpは左脚の位置
         cnoid::Position llegGoalCoords = gaitParam.footstepNodesList[i].dstCoords[LLEG]; // このfootstepNode終了時にdstCoordsに行くように線形補間
         cnoid::Vector3 zmpGoalPos = llegGoalCoords.translation();
@@ -35,7 +34,7 @@ void ComCoordsGenerator::calcZmpTrajectory(const GaitParam gaitParam, std::vecto
           zmpGoalPos = llegCOP;
         }else if(gaitParam.footstepNodesList[i+1].isSupportPhase[RLEG] && !gaitParam.footstepNodesList[i+1].isSupportPhase[LLEG]){ // 次は左脚がswing
           zmpGoalPos = rlegCOP;
-        }else{// 次は跳躍. TODO
+        }else{// 次は跳躍.
           zmpGoalPos = 0.5 * rlegCOP + 0.5 * llegCOP;
         }
         refZmpTraj.push_back(footguidedcontroller::LinearTrajectory<cnoid::Vector3>(refZmp,zmpGoalPos,std::max(gaitParam.footstepNodesList[i].remainTime, gaitParam.dt)));
@@ -54,7 +53,7 @@ void ComCoordsGenerator::calcZmpTrajectory(const GaitParam gaitParam, std::vecto
   o_refZmpTraj = refZmpTraj;
 }
 
-void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3& o_tgtCog) const{ // TODO tgtCogがジャンプすることがある？
+void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3& o_tgtCog) const{
   if (!(gaitParam.footstepNodesList.size() > 1)) return;
   cnoid::Vector3 genDCM = gaitParam.genCog + gaitParam.genCogVel / gaitParam.omega;
 
@@ -76,8 +75,8 @@ void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3
     cnoid::Vector3 max_c;
     double max_distance = 0.0;
 
-    for (int i=0;(i<gaitParam.refZmpTraj.size()) && (i<3);i++) {
-      predict_time += gaitParam.refZmpTraj[i].getTime(); //TODO 正確な時間
+    for (int i=0;(i<gaitParam.refZmpTraj.size()) && (i<3);i++) { // 最大で次の片足支持期期間まで．
+      predict_time += gaitParam.refZmpTraj[i].getTime();
     }
     double start_time = 0.0;
     int traj_index = 0;

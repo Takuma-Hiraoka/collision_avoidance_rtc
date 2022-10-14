@@ -12,7 +12,7 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     this->selfCollisionConstraint[i]->A_localp() = selfCollisionPairs[i]->localp1;
     this->selfCollisionConstraint[i]->B_link() = robot->link(selfCollisionPairs[i]->link2->name().c_str());
     this->selfCollisionConstraint[i]->B_localp() = selfCollisionPairs[i]->localp2;
-    this->selfCollisionConstraint[i]->tolerance() = 0.01; //TODO
+    this->selfCollisionConstraint[i]->tolerance() = 0.01;
     this->selfCollisionConstraint[i]->maxError() = 10.0*gaitParam.footstepNodesList[0].remainTime;
     this->selfCollisionConstraint[i]->precision() = 0.0;
     this->selfCollisionConstraint[i]->weight() = 1.0;
@@ -30,7 +30,7 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     this->envCollisionConstraint[i]->A_localp() = envCollisionPairs[i]->localp1;
     this->envCollisionConstraint[i]->B_link() = nullptr;
     this->envCollisionConstraint[i]->B_localp() = envCollisionPairs[i]->localp2;
-    this->envCollisionConstraint[i]->tolerance() = 0.04; //TODO
+    this->envCollisionConstraint[i]->tolerance() = 0.04;
     this->envCollisionConstraint[i]->maxError() = 10.0*dt;
     this->envCollisionConstraint[i]->precision() = 0.0;
     this->envCollisionConstraint[i]->weight() = 3.0;

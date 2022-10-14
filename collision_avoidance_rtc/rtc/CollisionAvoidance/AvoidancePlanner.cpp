@@ -3,8 +3,8 @@
 bool AvoidancePlanner::checkPlanExecute(const std::vector<GaitParam::FootStepNodes> footstepNodesList) const{
   return footstepNodesList.size() > 1 && // 静止状態ではない
     (footstepNodesList[1].isSupportPhase[RLEG] && footstepNodesList[1].isSupportPhase[LLEG]) && // 着地している
-    ((footstepNodesList[0].isSupportPhase[RLEG] && !footstepNodesList[0].isSupportPhase[LLEG]) || (!footstepNodesList[0].isSupportPhase[RLEG] && footstepNodesList[0].isSupportPhase[LLEG])) &&
-    (footstepNodesList[0].remainTime > 1.0); // 現在片足支持期で、次が両足支持期である // TODO 一歩の間での変更が蓄積するのでテンポラリとして1秒前までとしている
+    ((footstepNodesList[0].isSupportPhase[RLEG] && !footstepNodesList[0].isSupportPhase[LLEG]) || (!footstepNodesList[0].isSupportPhase[RLEG] && footstepNodesList[0].isSupportPhase[LLEG])) && // 現在片足支持期で、次が両足支持期である
+    (footstepNodesList[0].remainTime > this->checkPlanTime);
   // TODO 現在両足支持機で、次が片足支持期のときのみにしたほうが、急激なfootstepの変化や時間的余裕があってよい？
 }
 
