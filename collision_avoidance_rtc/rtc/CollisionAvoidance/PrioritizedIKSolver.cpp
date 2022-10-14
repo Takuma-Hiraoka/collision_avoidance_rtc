@@ -16,7 +16,7 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     this->selfCollisionConstraint[i]->maxError() = 10.0*gaitParam.footstepNodesList[0].remainTime;
     this->selfCollisionConstraint[i]->precision() = 0.0;
     this->selfCollisionConstraint[i]->weight() = 1.0;
-    this->selfCollisionConstraint[i]->velocityDamper() = 0.1 / gaitParam.footstepNodesList[0].remainTime;
+    this->selfCollisionConstraint[i]->velocityDamper() = 1.0 / gaitParam.footstepNodesList[0].remainTime;
     this->selfCollisionConstraint[i]->direction() = selfCollisionPairs[i]->direction21;
     ikConstraint0.push_back(this->selfCollisionConstraint[i]);
   }
@@ -33,7 +33,7 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     this->envCollisionConstraint[i]->tolerance() = 0.04;
     this->envCollisionConstraint[i]->maxError() = 10.0*dt;
     this->envCollisionConstraint[i]->precision() = 0.0;
-    this->envCollisionConstraint[i]->weight() = 3.0;
+    this->envCollisionConstraint[i]->weight() = 1.0;
     this->envCollisionConstraint[i]->velocityDamper() = 1.0 / gaitParam.footstepNodesList[0].remainTime;
     this->envCollisionConstraint[i]->direction() = envCollisionPairs[i]->direction21;
     ikConstraint0.push_back(this->envCollisionConstraint[i]);
