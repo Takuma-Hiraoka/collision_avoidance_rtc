@@ -70,7 +70,7 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     this->comConstraint->B_localp() = gaitParam.tgtCog;
     this->comConstraint->maxError() << 10.0*dt, 10.0*dt, 10.0*dt;
     this->comConstraint->precision() << 0.0, 0.0, 0.0;
-    this->comConstraint->weight() << 3.0, 3.0, 1.0;
+    this->comConstraint->weight() << 3.0, 3.0, 3.0;
     this->comConstraint->eval_R() = cnoid::Matrix3::Identity();
     ikConstraint1.push_back(this->comConstraint);
   }
@@ -83,21 +83,20 @@ bool PrioritizedIKSolver::solveFullBodyIK(double dt, const GaitParam& gaitParam,
     this->rootPositionConstraint->B_localpos() = robot->rootLink()->T(); //rootは大きく動いてほしくない
     this->rootPositionConstraint->maxError() << 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt, 10.0*dt;
     this->rootPositionConstraint->precision() << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0; // 強制的にIKをmax loopまで回す
-    this->rootPositionConstraint->weight() << 1.0, 1.0, 1.0, 10.0, 10.0, 0.0; // 角運動量を利用するときは重みを小さく. 通常時、胴の質量・イナーシャやマスパラ誤差の大きさや、胴を大きく動かすための出力不足などによって、二足動歩行では胴の傾きの自由度を使わない方がよい
-    //this->rootPositionConstraint->weight() << 0.0, 0.0, 0.0, 3e-1, 3e-1, 3e-1;
+    this->rootPositionConstraint->weight() << 0.0, 0.0, 1.0, 0.5, 10.0, 0.0; // rootLink位置が変わらないとchest-pitch等で重心を移動させるため時間が立つに連れ前かがみになってしまう．姿勢が固定されていると、腰関節で重心を移動させることになり、腰関節移動分が蓄積されて前かがみ、低重心になっていく．このため姿勢は固定されないことが望ましいが一方で急激にrootLinkの姿勢を変化させると不安定でもあるため、適当な重みで様子を見ている．
     this->rootPositionConstraint->eval_link() = nullptr;
     this->rootPositionConstraint->eval_localR() = cnoid::Matrix3::Identity();
     ikConstraint2.push_back(this->rootPositionConstraint);
   }
 
-
   // reference angle
+  std::vector<double> resetPose{0.0,0.0,-349065,0.676564,-0.349065,0.0,0.0,0.0,-0.349065,0.676565,-0.349065,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.698132,-0.349066,-0.087266,-1.39626,0.0,0.0,-0.349066,0.0,0.698132,0.349066,0.087266,-1.39626,0.0,0.0,-0.349066,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
   {
     for(size_t i=0;i<robot->numJoints();i++){
       this->refJointAngleConstraint[i]->joint() = robot->joint(i);
       this->refJointAngleConstraint[i]->maxError() = 10.0 * dt; // 高優先度のmaxError以下にしないと優先度逆転するおそれ
       this->refJointAngleConstraint[i]->weight() = 1e-1; // 小さい値すぎると、qp終了判定のtoleranceによって無視されてしまう
-      this->refJointAngleConstraint[i]->targetq() = gaitParam.orgRobot->joint(i)->q();
+      this->refJointAngleConstraint[i]->targetq() = resetPose[i];//gaitParam.orgRobot->joint(i)->q();
       this->refJointAngleConstraint[i]->precision() = 0.0; // 強制的にIKをmax loopまで回す
       ikConstraint2.push_back(this->refJointAngleConstraint[i]);
     }

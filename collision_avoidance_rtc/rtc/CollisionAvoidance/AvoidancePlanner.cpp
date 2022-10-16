@@ -84,9 +84,9 @@ void AvoidancePlanner::updateSafeFootStep(std::vector<GaitParam::FootStepNodes>&
   }
   //高さも出してはいるが、厳密に高さ方向の軌道を求めているわけではないので高さ方向の干渉は正確ではない
   for(int i=0;i<steppableHulls.size();i++){
-    if(mathutil::isInsideHull(nearestPoint, steppableHulls[i])) nearestPoint[2] = steppableHeights[i]; //zもx,y同様に扱いたいところだが、斜め領域等のため現状は平均値を採用
+    if(mathutil::isInsideHull(nearestPoint, steppableHulls[i])) nearestPoint[2] = footStepNodesList[0].dstCoords[supportLeg].translation()[2] + steppableHeights[i]; //zもx,y同様に扱いたいところだが、斜め領域等のため現状は平均値を採用
     }
-  // TODO 高さ．どのsteppable_hullの中にあるかを調べて同じ位置のsteppable_heightにする．
+  
   footStepNodesList[0].dstCoords[swingLeg].translation() = nearestPoint;
 };
 

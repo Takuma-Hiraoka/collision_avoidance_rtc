@@ -102,6 +102,7 @@ void ComCoordsGenerator::calcComCoords(const GaitParam gaitParam, cnoid::Vector3
 	max_c = c;
       }
     }
+    if(std::abs(max_c[2] - gaitParam.genCog[2]) < 0.01) max_c[2] = gaitParam.genCog[2]; //z方向は揺り戻しもなく数値誤差によって発散（重心が下がる）していく．これを防ぐため平面などの重心高さがほとんど変化しない場合は重心高さを変えない．
     o_tgtCog = max_c;
   }
 }

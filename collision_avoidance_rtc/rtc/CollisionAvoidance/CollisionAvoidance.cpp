@@ -250,6 +250,7 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
   std::cerr << "Collision Avoidance rtc onExecute" << std::endl;
   cnoid::TimeMeasure timer;
   timer.begin();
+  double exe_time = 0.0;
 
   // read port
   {
@@ -385,7 +386,8 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
 
     avoidancePlanner_.calcAngleTrajectory(robot_, gaitParam_.orgRobot, gaitParam_.footstepNodesList[0].remainTime, gaitParam_.dt, collisionChecker_, this->selfCollisionPairs_, this->vclipModelMap_, this->field_, this->fieldOrigin_, this->targetLinks_, this->verticesMap_, avoidancePlanner_.angleTrajectory);
 
-     std::cerr << "execution time : " << timer.measure() << std::endl;
+     exe_time = timer.measure();
+     std::cerr << "execution time : " << exe_time << std::endl;
      std::cerr << "out joint angle :";
      for ( int i = 0; i < this->robot_->numJoints(); i++ ){
        std::cerr << " " << this->robot_->joint(i)->q() * 180 / M_PI; // for euslisp debug
@@ -418,7 +420,7 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
 	OpenHRP::dSequence angles;
 	angles.length(this->robot_->numJoints());
 	for ( int i = 0; i < this->robot_->numJoints(); i++ ){
-	  angles[i] = this->robot_->joint(i)->q(); 
+	  angles[i] = this->robot_->joint(i)->q();
 	}
 	this->m_sequencePlayerService0_->setJointAngles(angles, gaitParam_.footstepNodesList[0].remainTime);
       }

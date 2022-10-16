@@ -15,7 +15,7 @@ public:
   std::vector<std::vector<cnoid::Vector3>> safeHulls; // 要素数任意．generate frame．endCoordsが環境と干渉せず、かつ到達できる領域
   std::vector<std::vector<double>> angleTrajectory; //SequencePlayerに送る関節角度軌道
 
-  double checkPlanTime = 0.6; // remainTimeがこの時間を上回るときのみ関節角度やfootstepを送る．
+  double checkPlanTime = 0.3; // remainTimeがこの時間を上回るときのみ関節角度やfootstepを送る．
 
   bool checkPlanExecute(const std::vector<GaitParam::FootStepNodes> footstepNodesList) const; // これがtrueのときのみ計画、結果を出力する．逆に計画時はここでの条件を前提として良い．
   
