@@ -57,6 +57,8 @@ public:
 
   void octomapCallback(std::shared_ptr<octomap_msgs::Octomap> octomap, cnoid::Position fieldOrigin);
 
+  void resetEncOffset();
+
   GaitParam gaitParam_;
   AvoidancePlanner avoidancePlanner_;
   ComCoordsGenerator comCoordsGenerator_;
@@ -72,8 +74,12 @@ private:
   std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > selfCollisionPairs_;
   std::vector<std::shared_ptr<CollisionChecker::CollisionPair> > envCollisionPairs_;
 
-  std::shared_ptr<std::thread> thread_;
-  bool thread_done_ = true;
+  std::shared_ptr<std::thread> octomap_thread_;
+  bool octomap_thread_done_ = true;
+
+  std::shared_ptr<std::thread> enc_thread_;
+  bool enc_thread_done_ = true;
+
 
   std::shared_ptr<distance_field::PropagationDistanceField> field_;
   cnoid::Position fieldOrigin_ = cnoid::Position::Identity();

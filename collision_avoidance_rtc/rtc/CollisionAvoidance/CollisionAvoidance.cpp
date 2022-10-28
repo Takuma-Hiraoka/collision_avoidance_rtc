@@ -327,9 +327,9 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       gaitParam_.dt = m_comPredictParam_.dt;
     }
 
-    if (this->thread_done_ && this->thread_){
-      this->thread_->join();
-      this->thread_ = nullptr;
+    if (this->octomap_thread_done_ && this->octomap_thread_){
+      this->octomap_thread_->join();
+      this->octomap_thread_ = nullptr;
     }
     if (this->m_octomapIn_.isNew()) {
       this->m_octomapIn_.read();
@@ -346,9 +346,9 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
       fieldOrigin.translation()[1] = this->m_octomap_.data.origin.position.y;
       fieldOrigin.translation()[2] = this->m_octomap_.data.origin.position.z;
       fieldOrigin.linear() = cnoid::rotFromRpy(this->m_octomap_.data.origin.orientation.r,this->m_octomap_.data.origin.orientation.p,this->m_octomap_.data.origin.orientation.y);
-      if ( !this->thread_) {
-	this->thread_done_ = false;
-	this->thread_ = std::make_shared<std::thread>(&CollisionAvoidance::octomapCallback, this, octomap, fieldOrigin);
+      if ( !this->octomap_thread_) {
+	this->octomap_thread_done_ = false;
+	this->octomap_thread_ = std::make_shared<std::thread>(&CollisionAvoidance::octomapCallback, this, octomap, fieldOrigin);
       }
     }
   } // read port
@@ -412,7 +412,7 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
 	this->m_footStepNodesList_.data[i].isSupportPhase[j] = gaitParam_.footstepNodesList[i].isSupportPhase[j]; // TODO remainTimeは必要か？
       }
     }
-    this->m_footStepNodesListOut_.write();
+    //this->m_footStepNodesListOut_.write();
 
     if (avoidancePlanner_.checkPlanExecute(gaitParam_.footstepNodesList)){    
       if(!CORBA::is_nil(this->m_sequencePlayerService0_._ptr()) && //コンシューマにプロバイダのオブジェクト参照がセットされていない(接続されていない)状態
@@ -422,7 +422,16 @@ RTC::ReturnCode_t CollisionAvoidance::onExecute(RTC::UniqueId ec_id){
 	for ( int i = 0; i < this->robot_->numJoints(); i++ ){
 	  angles[i] = this->robot_->joint(i)->q();
 	}
-	this->m_sequencePlayerService0_->setJointAngles(angles, gaitParam_.footstepNodesList[0].remainTime);
+	//this->m_sequencePlayerService0_->setJointAngles(angles, gaitParam_.footstepNodesList[0].remainTime);
+
+    if (this->enc_thread_done_ && this->enc_thread_){
+        this->enc_thread_->join();
+        this->enc_thread_ = nullptr;
+    }
+    if ( !this->enc_thread_) {
+        this->enc_thread_done_ = false;
+        this->enc_thread_ = std::make_shared<std::thread>(&CollisionAvoidance::resetEncOffset, this);
+    }
       }
     }
   } // write port
@@ -434,7 +443,7 @@ void CollisionAvoidance::octomapCallback(std::shared_ptr<octomap_msgs::Octomap> 
 
   std::shared_ptr<octomap::AbstractOcTree> absoctree = std::shared_ptr<octomap::AbstractOcTree>(octomap_msgs::msgToMap(*octomap));
   if(!absoctree) {
-    this->thread_done_ = true;
+    this->octomap_thread_done_ = true;
     return;
   }
 
@@ -467,8 +476,14 @@ void CollisionAvoidance::octomapCallback(std::shared_ptr<octomap_msgs::Octomap> 
   }
 
   absoctree->clear(); // destructor of OcTree does not free memory for internal data.
-  this->thread_done_ = true;
+  this->octomap_thread_done_ = true;
 }
+
+void CollisionAvoidance::resetEncOffset(){
+    system("/home/leus/catkin_ws/t-hiraoka/src/jsk-ros-pkg/trans_system/projects/trans_vm/bin/reset_enc_offset --leg");
+    this->enc_thread_done_ = true;
+}
+
 
 
 static const char* CollisionAvoidance_spec[] = {
